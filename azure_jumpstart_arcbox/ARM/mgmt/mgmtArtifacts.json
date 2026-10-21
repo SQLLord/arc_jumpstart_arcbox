@@ -152,10 +152,18 @@
     "registryPassword": {
       "type": "securestring",
       "nullable": true
+    },
+    "keyVaultName": {
+      "type": "string",
+      "defaultValue": "[toLower(format('{0}{1}', parameters('namingPrefix'), uniqueString(subscription().id, resourceGroup().id, utcNow())))]",
+      "maxLength": 24,
+      "metadata": {
+        "description": "Globally unique name of the Key Vault"
+      }
     }
   },
   "variables": {
-    "keyVaultName": "[toLower(format('{0}{1}', parameters('namingPrefix'), uniqueString(resourceGroup().id)))]",
+    "keyVaultName": "[toLower(parameters('keyVaultName'))]",
     "security": {
       "name": "[format('Security({0})', parameters('workspaceName'))]",
       "galleryName": "Security"

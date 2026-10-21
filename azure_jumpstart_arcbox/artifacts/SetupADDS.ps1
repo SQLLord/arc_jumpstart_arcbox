@@ -6,7 +6,8 @@
 param (
     [string]$domainName,
     [string]$domainAdminUsername,
-    [string]$templateBaseUrl
+    [string]$templateBaseUrl,
+    [string]$keyVaultName
 )
 
 [System.Environment]::SetEnvironmentVariable('domainName', $domainName,[System.EnvironmentVariableTarget]::Machine)
@@ -35,7 +36,20 @@ $headers = @{ "Metadata" = "true" }
 $response = Invoke-RestMethod -Uri $metadataUrl -Method Get -Headers $headers
 $resourceGroup = $response.resourceGroupName
 
-$KeyVault = Get-AzKeyVault -ResourceGroupName $resourceGroup
+# Use the Key Vault name passed in by the deployment; fall back to the single vault in the resource group
+if ($keyVaultName) {
+    $KeyVault = Get-AzKeyVault -VaultName $keyVaultName -ResourceGroupName $resourceGroup
+}
+else {
+    $KeyVault = @(Get-AzKeyVault -ResourceGroupName $resourceGroup)
+    if ($KeyVault.Count -ne 1) {
+        throw "Expected exactly one Key Vault in resource group '$resourceGroup' but found $($KeyVault.Count). Pass -keyVaultName explicitly."
+    }
+    $KeyVault = $KeyVault[0]
+}
+if (-not $KeyVault) {
+    throw "Key Vault '$keyVaultName' was not found in resource group '$resourceGroup'."
+}
 
 # Set Key Vault Name as an environment variable
 [System.Environment]::SetEnvironmentVariable('keyVaultName', $KeyVault.VaultName, [System.EnvironmentVariableTarget]::Machine)

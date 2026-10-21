@@ -175,6 +175,21 @@
         "description": "The naming prefix for the nested virtual machines and all Azure resources deployed. The maximum length for the naming prefix is 7 characters,example: `ArcBox-Win2k19`"
       }
     },
+    "keyVaultName": {
+      "type": "string",
+      "defaultValue": "",
+      "maxLength": 24,
+      "metadata": {
+        "description": "Optional. Globally unique name for the Key Vault (3-24 alphanumerics/hyphens). Leave empty to auto-generate a unique name from the naming prefix, resource group and deployment time."
+      }
+    },
+    "deploymentTimestamp": {
+      "type": "string",
+      "defaultValue": "[utcNow()]",
+      "metadata": {
+        "description": "Do not set. Seeds the auto-generated Key Vault name so each deployment gets a unique, never-before-used name."
+      }
+    },
     "autoShutdownEnabled": {
       "type": "bool",
       "defaultValue": true
@@ -216,6 +231,7 @@
     }
   },
   "variables": {
+    "keyVaultName": "[if(empty(parameters('keyVaultName')), toLower(format('{0}{1}', parameters('namingPrefix'), uniqueString(subscription().id, resourceGroup().id, parameters('deploymentTimestamp')))), toLower(parameters('keyVaultName')))]",
     "templateBaseUrl": "[format('https://raw.githubusercontent.com/{0}/arc_jumpstart_arcbox/{1}/azure_jumpstart_arcbox/', parameters('githubAccount'), parameters('githubBranch'))]",
     "aksArcDataClusterName": "[format('{0}-AKS-Data-{1}', parameters('namingPrefix'), parameters('guid'))]",
     "aksDrArcDataClusterName": "[format('{0}-AKS-DR-Data-{1}', parameters('namingPrefix'), parameters('guid'))]",
@@ -1510,6 +1526,9 @@
           "debugEnabled": {
             "value": "[parameters('debugEnabled')]"
           },
+          "keyVaultName": {
+            "value": "[variables('keyVaultName')]"
+          },
           "autoShutdownEnabled": {
             "value": "[parameters('autoShutdownEnabled')]"
           },
@@ -1789,6 +1808,12 @@
                 "description": "Use this parameter to enable or disable debug mode for the automation scripts on the client VM, effectively configuring PowerShell ErrorActionPreference to Break. Default is false."
               }
             },
+            "keyVaultName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the Key Vault holding the ArcBox secrets"
+              }
+            },
             "autoShutdownEnabled": {
               "type": "bool",
               "defaultValue": true
@@ -1980,7 +2005,7 @@
                   "fileUris": [
                     "[uri(parameters('templateBaseUrl'), 'artifacts/Bootstrap.ps1')]"
                   ],
-                  "commandToExecute": "[format('powershell.exe -ExecutionPolicy Bypass -File Bootstrap.ps1 -adminUsername {0} -tenantId {1} -spnAuthority {2} -subscriptionId {3} -resourceGroup {4} -azdataUsername {5} -acceptEula {6} -registryUsername {7} -arcDcName {8} -azureLocation {9} -mssqlmiName {10} -POSTGRES_NAME {11} -POSTGRES_WORKER_NODE_COUNT {12} -POSTGRES_DATASIZE {13} -POSTGRES_SERVICE_TYPE {14} -stagingStorageAccountName {15} -workspaceName {16} -templateBaseUrl {17} -flavor {18} -k3sArcDataClusterName {19} -k3sArcClusterName {20} -aksArcClusterName {21} -aksdrArcClusterName {22} -githubUser {23} -githubBranch {24} -vmAutologon {25} -rdpPort {26} -addsDomainName {27} -customLocationRPOID {28} -resourceTags {29} -namingPrefix {30} -debugEnabled {31} -sqlServerEdition {32} -autoShutdownEnabled {33}', parameters('windowsAdminUsername'), parameters('tenantId'), parameters('spnAuthority'), subscription().subscriptionId, resourceGroup().name, parameters('azdataUsername'), parameters('acceptEula'), parameters('registryUsername'), parameters('arcDcName'), parameters('location'), parameters('mssqlmiName'), parameters('postgresName'), parameters('postgresWorkerNodeCount'), parameters('postgresDatasize'), parameters('postgresServiceType'), parameters('stagingStorageAccountName'), parameters('workspaceName'), parameters('templateBaseUrl'), parameters('flavor'), parameters('k3sArcDataClusterName'), parameters('k3sArcClusterName'), parameters('aksArcClusterName'), parameters('aksdrArcClusterName'), parameters('githubUser'), parameters('githubBranch'), parameters('vmAutologon'), parameters('rdpPort'), parameters('addsDomainName'), parameters('customLocationRPOID'), parameters('resourceTags'), parameters('namingPrefix'), parameters('debugEnabled'), parameters('sqlServerEdition'), parameters('autoShutdownEnabled'))]"
+                  "commandToExecute": "[format('powershell.exe -ExecutionPolicy Bypass -File Bootstrap.ps1 -adminUsername {0} -tenantId {1} -spnAuthority {2} -subscriptionId {3} -resourceGroup {4} -azdataUsername {5} -acceptEula {6} -registryUsername {7} -arcDcName {8} -azureLocation {9} -mssqlmiName {10} -POSTGRES_NAME {11} -POSTGRES_WORKER_NODE_COUNT {12} -POSTGRES_DATASIZE {13} -POSTGRES_SERVICE_TYPE {14} -stagingStorageAccountName {15} -workspaceName {16} -templateBaseUrl {17} -flavor {18} -k3sArcDataClusterName {19} -k3sArcClusterName {20} -aksArcClusterName {21} -aksdrArcClusterName {22} -githubUser {23} -githubBranch {24} -vmAutologon {25} -rdpPort {26} -addsDomainName {27} -customLocationRPOID {28} -resourceTags {29} -namingPrefix {30} -debugEnabled {31} -sqlServerEdition {32} -autoShutdownEnabled {33} -keyVaultName {34}', parameters('windowsAdminUsername'), parameters('tenantId'), parameters('spnAuthority'), subscription().subscriptionId, resourceGroup().name, parameters('azdataUsername'), parameters('acceptEula'), parameters('registryUsername'), parameters('arcDcName'), parameters('location'), parameters('mssqlmiName'), parameters('postgresName'), parameters('postgresWorkerNodeCount'), parameters('postgresDatasize'), parameters('postgresServiceType'), parameters('stagingStorageAccountName'), parameters('workspaceName'), parameters('templateBaseUrl'), parameters('flavor'), parameters('k3sArcDataClusterName'), parameters('k3sArcClusterName'), parameters('aksArcClusterName'), parameters('aksdrArcClusterName'), parameters('githubUser'), parameters('githubBranch'), parameters('vmAutologon'), parameters('rdpPort'), parameters('addsDomainName'), parameters('customLocationRPOID'), parameters('resourceTags'), parameters('namingPrefix'), parameters('debugEnabled'), parameters('sqlServerEdition'), parameters('autoShutdownEnabled'), parameters('keyVaultName'))]"
                 }
               },
               "dependsOn": [
@@ -2148,6 +2173,9 @@
               "apiVersion": "2024-01-01",
               "name": "[toLower(variables('storageAccountName'))]",
               "location": "[parameters('location')]",
+              "tags": {
+                "SecurityControl": "Ignore"
+              },
               "sku": {
                 "name": "[parameters('storageAccountType')]"
               },
@@ -2204,6 +2232,9 @@
           },
           "registryPassword": {
             "value": "[parameters('registryPassword')]"
+          },
+          "keyVaultName": {
+            "value": "[variables('keyVaultName')]"
           }
         },
         "template": {
@@ -2360,10 +2391,17 @@
             "registryPassword": {
               "type": "securestring",
               "nullable": true
+            },
+            "keyVaultName": {
+              "type": "string",
+              "maxLength": 24,
+              "metadata": {
+                "description": "Globally unique name of the Key Vault"
+              }
             }
           },
           "variables": {
-            "keyVaultName": "[toLower(format('{0}{1}', parameters('namingPrefix'), uniqueString(resourceGroup().id)))]",
+            "keyVaultName": "[toLower(parameters('keyVaultName'))]",
             "security": {
               "name": "[format('Security({0})', parameters('workspaceName'))]",
               "galleryName": "Security"
@@ -5694,6 +5732,9 @@
           },
           "namingPrefix": {
             "value": "[parameters('namingPrefix')]"
+          },
+          "keyVaultName": {
+            "value": "[variables('keyVaultName')]"
           }
         },
         "template": {
@@ -5762,6 +5803,12 @@
               "defaultValue": false,
               "metadata": {
                 "description": "Choice to deploy Azure Bastion"
+              }
+            },
+            "keyVaultName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the Key Vault holding the ArcBox secrets"
               }
             },
             "templateBaseUrl": {
@@ -5899,7 +5946,7 @@
                   "fileUris": [
                     "[uri(parameters('templateBaseUrl'), 'artifacts/SetupADDS.ps1')]"
                   ],
-                  "commandToExecute": "[format('powershell.exe -ExecutionPolicy Bypass -File SetupADDS.ps1 -domainName {0} -domainAdminUsername {1} -templateBaseUrl {2}', parameters('addsDomainName'), parameters('windowsAdminUsername'), parameters('templateBaseUrl'))]"
+                  "commandToExecute": "[format('powershell.exe -ExecutionPolicy Bypass -File SetupADDS.ps1 -domainName {0} -domainAdminUsername {1} -templateBaseUrl {2} -keyVaultName {3}', parameters('addsDomainName'), parameters('windowsAdminUsername'), parameters('templateBaseUrl'), parameters('keyVaultName'))]"
                 }
               },
               "dependsOn": [
@@ -5974,6 +6021,9 @@
           },
           "namingPrefix": {
             "value": "[parameters('namingPrefix')]"
+          },
+          "keyVaultName": {
+            "value": "[variables('keyVaultName')]"
           }
         },
         "template": {
@@ -6130,10 +6180,17 @@
             "registryPassword": {
               "type": "securestring",
               "nullable": true
+            },
+            "keyVaultName": {
+              "type": "string",
+              "maxLength": 24,
+              "metadata": {
+                "description": "Globally unique name of the Key Vault"
+              }
             }
           },
           "variables": {
-            "keyVaultName": "[toLower(format('{0}{1}', parameters('namingPrefix'), uniqueString(resourceGroup().id)))]",
+            "keyVaultName": "[toLower(parameters('keyVaultName'))]",
             "security": {
               "name": "[format('Security({0})', parameters('workspaceName'))]",
               "galleryName": "Security"

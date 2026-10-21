@@ -86,6 +86,13 @@ param natGatewayName string = '${namingPrefix}-NatGateway'
 @description('The naming prefix for the nested virtual machines and all Azure resources deployed. The maximum length for the naming prefix is 7 characters,example: `ArcBox-Win2k19`')
 param namingPrefix string = 'ArcBox'
 
+@description('Optional. Globally unique name for the Key Vault (3-24 alphanumerics/hyphens). Leave empty to auto-generate a unique name from the naming prefix, resource group and deployment time.')
+@maxLength(24)
+param keyVaultName string = ''
+
+@description('Do not set. Seeds the auto-generated Key Vault name so each deployment gets a unique, never-before-used name.')
+param deploymentTimestamp string = utcNow()
+
 param autoShutdownEnabled bool = true
 param autoShutdownTime string = '1800' // The time for auto-shutdown in HHmm format (24-hour clock)
 param autoShutdownTimezone string = 'UTC' // Timezone for the auto-shutdown
@@ -104,6 +111,8 @@ param zones string = '1'
 
 @secure()
 param registryPassword string = newGuid()
+
+var resolvedKeyVaultName = empty(keyVaultName) ? toLower('${namingPrefix}${uniqueString(subscription().id, resourceGroup().id, deploymentTimestamp)}') : toLower(keyVaultName)
 
 var templateBaseUrl = 'https://raw.githubusercontent.com/${githubAccount}/arc_jumpstart_arcbox/${githubBranch}/azure_jumpstart_arcbox/'
 var aksArcDataClusterName = '${namingPrefix}-AKS-Data-${guid}'
@@ -186,6 +195,7 @@ module ubuntuRancherK3sNodesDeployment 'kubernetes/ubuntuRancherNodes.bicep' = [
 module clientVmDeployment 'clientVm/clientVm.bicep' = {
   name: 'clientVmDeployment'
   params: {
+    keyVaultName: resolvedKeyVaultName
     windowsAdminUsername: windowsAdminUsername
     windowsAdminPassword: windowsAdminPassword
     tenantId: tenantId
@@ -244,12 +254,14 @@ module mgmtArtifactsAndPolicyDeployment 'mgmt/mgmtArtifacts.bicep' = {
     windowsAdminPassword: windowsAdminPassword
     registryPassword: registryPassword
     natGatewayName: natGatewayName
+    keyVaultName: resolvedKeyVaultName
   }
 }
 
 module addsVmDeployment 'mgmt/addsVm.bicep' = if (flavor == 'DataOps'){
   name: 'addsVmDeployment'
   params: {
+    keyVaultName: resolvedKeyVaultName
     windowsAdminUsername : windowsAdminUsername
     windowsAdminPassword : windowsAdminPassword
     addsDomainName: addsDomainName
@@ -275,6 +287,7 @@ module updateVNetDNSServers 'mgmt/mgmtArtifacts.bicep' = if (flavor == 'DataOps'
     '168.63.129.16'
     ]
     namingPrefix: namingPrefix
+    keyVaultName: resolvedKeyVaultName
   }
   dependsOn: [
     addsVmDeployment

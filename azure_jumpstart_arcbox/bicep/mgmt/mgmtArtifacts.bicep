@@ -77,7 +77,9 @@ param windowsAdminPassword string?
 @secure()
 param registryPassword string?
 
-var keyVaultName = toLower('${namingPrefix}${uniqueString(resourceGroup().id)}')
+@description('Globally unique name of the Key Vault')
+@maxLength(24)
+param keyVaultName string = toLower('${namingPrefix}${uniqueString(subscription().id, resourceGroup().id, utcNow())}')
 
 var security = {
   name: 'Security(${workspaceName})'

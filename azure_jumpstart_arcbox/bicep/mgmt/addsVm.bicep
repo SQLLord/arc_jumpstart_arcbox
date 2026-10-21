@@ -32,6 +32,9 @@ param templateBaseUrl string = ''
 @description('The naming prefix for the nested virtual machines. Example: ArcBox-Win2k19')
 param namingPrefix string = 'ArcBox'
 
+@description('Name of the Key Vault holding the ArcBox secrets')
+param keyVaultName string
+
 var networkInterfaceName = '${clientVMName}-NIC'
 var virtualNetworkName = '${namingPrefix}-VNet'
 var dcSubnetName = '${namingPrefix}-DC-Subnet'
@@ -138,7 +141,7 @@ resource vmName_DeployADDS 'Microsoft.Compute/virtualMachines/extensions@2024-07
       fileUris: [
         uri(templateBaseUrl, 'artifacts/SetupADDS.ps1')
       ]
-      commandToExecute: 'powershell.exe -ExecutionPolicy Bypass -File SetupADDS.ps1 -domainName ${addsDomainName} -domainAdminUsername ${windowsAdminUsername} -templateBaseUrl ${templateBaseUrl}'
+      commandToExecute: 'powershell.exe -ExecutionPolicy Bypass -File SetupADDS.ps1 -domainName ${addsDomainName} -domainAdminUsername ${windowsAdminUsername} -templateBaseUrl ${templateBaseUrl} -keyVaultName ${keyVaultName}'
     }
   }
 }

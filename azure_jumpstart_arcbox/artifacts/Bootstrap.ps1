@@ -34,7 +34,8 @@ param (
     [string]$namingPrefix,
     [string]$debugEnabled,
     [string]$sqlServerEdition,
-    [string]$autoShutdownEnabled
+    [string]$autoShutdownEnabled,
+    [string]$keyVaultName
 )
 
 [System.Environment]::SetEnvironmentVariable('adminUsername', $adminUsername, [System.EnvironmentVariableTarget]::Machine)
@@ -159,7 +160,20 @@ if ($null -ne $tags) {
 
 $null = Set-AzResourceGroup -ResourceGroupName $resourceGroup -Tag $tags
 
-$KeyVault = Get-AzKeyVault -ResourceGroupName $resourceGroup
+# Use the Key Vault name passed in by the deployment; fall back to the single vault in the resource group
+if ($keyVaultName) {
+    $KeyVault = Get-AzKeyVault -VaultName $keyVaultName -ResourceGroupName $resourceGroup
+}
+else {
+    $KeyVault = @(Get-AzKeyVault -ResourceGroupName $resourceGroup)
+    if ($KeyVault.Count -ne 1) {
+        throw "Expected exactly one Key Vault in resource group '$resourceGroup' but found $($KeyVault.Count). Pass -keyVaultName explicitly."
+    }
+    $KeyVault = $KeyVault[0]
+}
+if (-not $KeyVault) {
+    throw "Key Vault '$keyVaultName' was not found in resource group '$resourceGroup'."
+}
 
 # Set Key Vault Name as an environment variable (used by DevOps flavor)
 [System.Environment]::SetEnvironmentVariable('keyVaultName', $KeyVault.VaultName, [System.EnvironmentVariableTarget]::Machine)
