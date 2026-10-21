@@ -36,7 +36,7 @@ $ErrorActionPreference = "SilentlyContinue"
 
 # Downloading GitHub artifacts
 Invoke-WebRequest ($templateBaseUrl + "artifacts/LogonScript.ps1") -OutFile "C:\Temp\LogonScript.ps1"
-Invoke-WebRequest "https://raw.githubusercontent.com/Azure/arc_jumpstart_docs/main/img/wallpaper/jumpstart_wallpaper_dark.png" -OutFile "C:\Temp\wallpaper.png"
+Invoke-WebRequest "https://raw.githubusercontent.com/SQLLord/arc_jumpstart_Arcbox_docs/master/img/wallpaper/jumpstart_wallpaper_dark.png" -OutFile "C:\Temp\wallpaper.png"
 
 # Installing tools
 Write-Host "Installing Chocolatey Apps"

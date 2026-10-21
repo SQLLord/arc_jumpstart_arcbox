@@ -183,6 +183,27 @@
         "description": "Optional. Globally unique name for the Key Vault (3-24 alphanumerics/hyphens). Leave empty to auto-generate a unique name from the naming prefix, resource group and deployment time."
       }
     },
+    "vhdStorageAccountName": {
+      "type": "string",
+      "defaultValue": "arcboxfilesdonotdelete",
+      "metadata": {
+        "description": "Optional. Storage account holding the nested VM VHD images (private; accessed with the client VM managed identity). Leave empty to use the public Jumpstart storage account."
+      }
+    },
+    "vhdStorageAccountResourceGroup": {
+      "type": "string",
+      "defaultValue": "Arcbox",
+      "metadata": {
+        "description": "Resource group of the VHD storage account (same subscription as the deployment)"
+      }
+    },
+    "vhdContainerName": {
+      "type": "string",
+      "defaultValue": "arcboxvhds",
+      "metadata": {
+        "description": "Blob container holding the nested VM VHD images"
+      }
+    },
     "deploymentTimestamp": {
       "type": "string",
       "defaultValue": "[utcNow()]",
@@ -1547,6 +1568,15 @@
           },
           "enableAzureSpotPricing": {
             "value": "[parameters('enableAzureSpotPricing')]"
+          },
+          "vhdStorageAccountName": {
+            "value": "[parameters('vhdStorageAccountName')]"
+          },
+          "vhdStorageAccountResourceGroup": {
+            "value": "[parameters('vhdStorageAccountResourceGroup')]"
+          },
+          "vhdContainerName": {
+            "value": "[parameters('vhdContainerName')]"
           }
         },
         "template": {
@@ -1555,8 +1585,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.33.93.31351",
-              "templateHash": "8154565818556360808"
+              "version": "0.38.33.27573",
+              "templateHash": "11712171425519511535"
             }
           },
           "parameters": {
@@ -1808,12 +1838,6 @@
                 "description": "Use this parameter to enable or disable debug mode for the automation scripts on the client VM, effectively configuring PowerShell ErrorActionPreference to Break. Default is false."
               }
             },
-            "keyVaultName": {
-              "type": "string",
-              "metadata": {
-                "description": "Name of the Key Vault holding the ArcBox secrets"
-              }
-            },
             "autoShutdownEnabled": {
               "type": "bool",
               "defaultValue": true
@@ -1848,9 +1872,39 @@
               "metadata": {
                 "description": "Option to enable spot pricing for the ArcBox Client VM"
               }
+            },
+            "keyVaultName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the Key Vault holding the ArcBox secrets"
+              }
+            },
+            "vhdStorageAccountName": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Optional. Storage account holding the nested VM VHD images. Leave empty to download them anonymously from the public Jumpstart storage account."
+              }
+            },
+            "vhdStorageAccountResourceGroup": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().name]",
+              "metadata": {
+                "description": "Resource group of the VHD storage account (same subscription as the deployment)"
+              }
+            },
+            "vhdContainerName": {
+              "type": "string",
+              "defaultValue": "arcboxvhds",
+              "metadata": {
+                "description": "Blob container holding the nested VM VHD images"
+              }
             }
           },
           "variables": {
+            "useVhdStorageAccount": "[not(empty(parameters('vhdStorageAccountName')))]",
+            "vhdSourceUrl": "[if(variables('useVhdStorageAccount'), format('https://{0}.blob.{1}/{2}', parameters('vhdStorageAccountName'), environment().suffixes.storage, parameters('vhdContainerName')), 'https://jumpstartprodsg.blob.core.windows.net/arcbox/prod')]",
+            "vhdSourceAuth": "[if(variables('useVhdStorageAccount'), 'ManagedIdentity', 'Anonymous')]",
             "bastionName": "[format('{0}-Bastion', parameters('namingPrefix'))]",
             "publicIpAddressName": "[if(equals(parameters('deployBastion'), false()), format('{0}-PIP', parameters('vmName')), format('{0}-PIP', variables('bastionName')))]",
             "networkInterfaceName": "[format('{0}-NIC', parameters('vmName'))]",
@@ -2005,10 +2059,11 @@
                   "fileUris": [
                     "[uri(parameters('templateBaseUrl'), 'artifacts/Bootstrap.ps1')]"
                   ],
-                  "commandToExecute": "[format('powershell.exe -ExecutionPolicy Bypass -File Bootstrap.ps1 -adminUsername {0} -tenantId {1} -spnAuthority {2} -subscriptionId {3} -resourceGroup {4} -azdataUsername {5} -acceptEula {6} -registryUsername {7} -arcDcName {8} -azureLocation {9} -mssqlmiName {10} -POSTGRES_NAME {11} -POSTGRES_WORKER_NODE_COUNT {12} -POSTGRES_DATASIZE {13} -POSTGRES_SERVICE_TYPE {14} -stagingStorageAccountName {15} -workspaceName {16} -templateBaseUrl {17} -flavor {18} -k3sArcDataClusterName {19} -k3sArcClusterName {20} -aksArcClusterName {21} -aksdrArcClusterName {22} -githubUser {23} -githubBranch {24} -vmAutologon {25} -rdpPort {26} -addsDomainName {27} -customLocationRPOID {28} -resourceTags {29} -namingPrefix {30} -debugEnabled {31} -sqlServerEdition {32} -autoShutdownEnabled {33} -keyVaultName {34}', parameters('windowsAdminUsername'), parameters('tenantId'), parameters('spnAuthority'), subscription().subscriptionId, resourceGroup().name, parameters('azdataUsername'), parameters('acceptEula'), parameters('registryUsername'), parameters('arcDcName'), parameters('location'), parameters('mssqlmiName'), parameters('postgresName'), parameters('postgresWorkerNodeCount'), parameters('postgresDatasize'), parameters('postgresServiceType'), parameters('stagingStorageAccountName'), parameters('workspaceName'), parameters('templateBaseUrl'), parameters('flavor'), parameters('k3sArcDataClusterName'), parameters('k3sArcClusterName'), parameters('aksArcClusterName'), parameters('aksdrArcClusterName'), parameters('githubUser'), parameters('githubBranch'), parameters('vmAutologon'), parameters('rdpPort'), parameters('addsDomainName'), parameters('customLocationRPOID'), parameters('resourceTags'), parameters('namingPrefix'), parameters('debugEnabled'), parameters('sqlServerEdition'), parameters('autoShutdownEnabled'), parameters('keyVaultName'))]"
+                  "commandToExecute": "[format('powershell.exe -ExecutionPolicy Bypass -File Bootstrap.ps1 -adminUsername {0} -tenantId {1} -spnAuthority {2} -subscriptionId {3} -resourceGroup {4} -azdataUsername {5} -acceptEula {6} -registryUsername {7} -arcDcName {8} -azureLocation {9} -mssqlmiName {10} -POSTGRES_NAME {11} -POSTGRES_WORKER_NODE_COUNT {12} -POSTGRES_DATASIZE {13} -POSTGRES_SERVICE_TYPE {14} -stagingStorageAccountName {15} -workspaceName {16} -templateBaseUrl {17} -flavor {18} -k3sArcDataClusterName {19} -k3sArcClusterName {20} -aksArcClusterName {21} -aksdrArcClusterName {22} -githubUser {23} -githubBranch {24} -vmAutologon {25} -rdpPort {26} -addsDomainName {27} -customLocationRPOID {28} -resourceTags {29} -namingPrefix {30} -debugEnabled {31} -sqlServerEdition {32} -autoShutdownEnabled {33} -keyVaultName {34} -vhdSourceUrl {35} -vhdSourceAuth {36}', parameters('windowsAdminUsername'), parameters('tenantId'), parameters('spnAuthority'), subscription().subscriptionId, resourceGroup().name, parameters('azdataUsername'), parameters('acceptEula'), parameters('registryUsername'), parameters('arcDcName'), parameters('location'), parameters('mssqlmiName'), parameters('postgresName'), parameters('postgresWorkerNodeCount'), parameters('postgresDatasize'), parameters('postgresServiceType'), parameters('stagingStorageAccountName'), parameters('workspaceName'), parameters('templateBaseUrl'), parameters('flavor'), parameters('k3sArcDataClusterName'), parameters('k3sArcClusterName'), parameters('aksArcClusterName'), parameters('aksdrArcClusterName'), parameters('githubUser'), parameters('githubBranch'), parameters('vmAutologon'), parameters('rdpPort'), parameters('addsDomainName'), parameters('customLocationRPOID'), parameters('resourceTags'), parameters('namingPrefix'), parameters('debugEnabled'), parameters('sqlServerEdition'), parameters('autoShutdownEnabled'), parameters('keyVaultName'), variables('vhdSourceUrl'), variables('vhdSourceAuth'))]"
                 }
               },
               "dependsOn": [
+                "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('vhdStorageAccountResourceGroup')), 'Microsoft.Resources/deployments', 'vhdStorageRoleAssignment')]",
                 "[resourceId('Microsoft.Compute/virtualMachines', parameters('vmName'))]"
               ]
             },
@@ -2017,7 +2072,7 @@
               "apiVersion": "2022-04-01",
               "name": "[guid(resourceId('Microsoft.Compute/virtualMachines', parameters('vmName')), 'Microsoft.Authorization/roleAssignments', 'Administrator')]",
               "properties": {
-                "principalId": "[reference(resourceId('Microsoft.Compute/virtualMachines', parameters('vmName')), '2022-03-01', 'full').identity.principalId]",
+                "principalId": "[reference(resourceId('Microsoft.Compute/virtualMachines', parameters('vmName')), '2024-07-01', 'full').identity.principalId]",
                 "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483')]",
                 "principalType": "ServicePrincipal"
               },
@@ -2039,7 +2094,7 @@
               "apiVersion": "2022-04-01",
               "name": "[guid(resourceId('Microsoft.Compute/virtualMachines', parameters('vmName')), 'Microsoft.Authorization/roleAssignments', 'Owner')]",
               "properties": {
-                "principalId": "[reference(resourceId('Microsoft.Compute/virtualMachines', parameters('vmName')), '2022-03-01', 'full').identity.principalId]",
+                "principalId": "[reference(resourceId('Microsoft.Compute/virtualMachines', parameters('vmName')), '2024-07-01', 'full').identity.principalId]",
                 "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', '8e3af657-a8ff-443c-a75c-2fe8c4bcb635')]",
                 "principalType": "ServicePrincipal"
               },
@@ -2052,7 +2107,7 @@
               "apiVersion": "2022-04-01",
               "name": "[guid(resourceId('Microsoft.Compute/virtualMachines', parameters('vmName')), 'Microsoft.Authorization/roleAssignments', 'Storage Blob Data Contributor')]",
               "properties": {
-                "principalId": "[reference(resourceId('Microsoft.Compute/virtualMachines', parameters('vmName')), '2022-03-01', 'full').identity.principalId]",
+                "principalId": "[reference(resourceId('Microsoft.Compute/virtualMachines', parameters('vmName')), '2024-07-01', 'full').identity.principalId]",
                 "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')]",
                 "principalType": "ServicePrincipal"
               },
@@ -2085,6 +2140,71 @@
               "dependsOn": [
                 "[resourceId('Microsoft.Compute/virtualMachines', parameters('vmName'))]"
               ]
+            },
+            {
+              "condition": "[variables('useVhdStorageAccount')]",
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2025-04-01",
+              "name": "vhdStorageRoleAssignment",
+              "resourceGroup": "[parameters('vhdStorageAccountResourceGroup')]",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "storageAccountName": {
+                    "value": "[parameters('vhdStorageAccountName')]"
+                  },
+                  "principalId": {
+                    "value": "[reference(resourceId('Microsoft.Compute/virtualMachines', parameters('vmName')), '2024-07-01', 'full').identity.principalId]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.38.33.27573",
+                      "templateHash": "16705796423137943210"
+                    }
+                  },
+                  "parameters": {
+                    "storageAccountName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of the storage account holding the ArcBox nested VM VHD images"
+                      }
+                    },
+                    "principalId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Principal Id of the ArcBox client VM managed identity"
+                      }
+                    }
+                  },
+                  "variables": {
+                    "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1')]"
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Authorization/roleAssignments",
+                      "apiVersion": "2022-04-01",
+                      "scope": "[format('Microsoft.Storage/storageAccounts/{0}', parameters('storageAccountName'))]",
+                      "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), parameters('principalId'), variables('roleDefinitionId'))]",
+                      "properties": {
+                        "principalId": "[parameters('principalId')]",
+                        "roleDefinitionId": "[variables('roleDefinitionId')]",
+                        "principalType": "ServicePrincipal"
+                      }
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Compute/virtualMachines', parameters('vmName'))]"
+              ]
             }
           ],
           "outputs": {
@@ -2094,7 +2214,7 @@
             },
             "publicIP": {
               "type": "string",
-              "value": "[if(equals(parameters('deployBastion'), false()), concat(reference(resourceId('Microsoft.Network/publicIPAddresses', variables('publicIpAddressName')), '2022-01-01').ipAddress), '')]"
+              "value": "[if(equals(parameters('deployBastion'), false()), reference(resourceId('Microsoft.Network/publicIPAddresses', variables('publicIpAddressName')), '2024-05-01').ipAddress, '')]"
             }
           }
         }

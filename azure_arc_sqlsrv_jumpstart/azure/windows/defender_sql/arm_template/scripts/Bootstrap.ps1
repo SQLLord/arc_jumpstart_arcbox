@@ -113,7 +113,7 @@ Invoke-WebRequest ($templateBaseUrl + "azure/windows/defender_sql/arm_template/i
 Invoke-WebRequest ($templateBaseUrl + "azure/windows/defender_sql/arm_template/scripts/testDefenderForSQL.ps1") -OutFile $Env:ArcJSDir\testDefenderForSQL.ps1
 Invoke-WebRequest ($templateBaseUrl + "azure/windows/defender_sql/arm_template/scripts/SqlAdvancedThreatProtectionShell.psm1") -OutFile $Env:ArcJSDir\SqlAdvancedThreatProtectionShell.psm1
 Invoke-WebRequest ($templateBaseUrl + "azure/windows/defender_sql/arm_template/defendersqldcrtemplate.json") -OutFile $Env:ArcJSDir\defendersqldcrtemplate.json
-Invoke-WebRequest "https://raw.githubusercontent.com/Azure/arc_jumpstart_docs/main/img/wallpaper/jumpstart_wallpaper_dark.png" -OutFile "$Env:tempDir\wallpaper.png"
+Invoke-WebRequest "https://raw.githubusercontent.com/SQLLord/arc_jumpstart_Arcbox_docs/master/img/wallpaper/jumpstart_wallpaper_dark.png" -OutFile "$Env:tempDir\wallpaper.png"
 
 Write-Header "Configuring Logon Scripts"
 

@@ -9,7 +9,7 @@ body:
       value: |
         Thanks for taking the time to suggest a new feature!
 
-        If your feature request is related to documentation, we kindly ask you to submit it in our [documentation repository](https://github.com/Azure/arc_jumpstart_docs).
+        If your feature request is related to documentation, we kindly ask you to submit it in our [documentation repository](https://github.com/SQLLord/arc_jumpstart_Arcbox_docs).
 
         The intent of this "Feature Request" template is to address feature requests related to the various Arc Jumpstart solutions. The Arc Jumpstart team does not handle and/or support Azure Arc upstream core product related features and will try to assist on a best effort basis. For a core product feature request/feedback, please submit through [general feedback](https://feedback.azure.com).
   - type: checkboxes
@@ -66,7 +66,7 @@ body:
     id: terms
     attributes:
       label: Code of Conduct
-      description: By submitting this feature request, you agree to follow our [Code of Conduct](https://github.com/Azure/arc_jumpstart_docs/blob/main/CODE_OF_CONDUCT.md)
+      description: By submitting this feature request, you agree to follow our [Code of Conduct](https://github.com/SQLLord/arc_jumpstart_Arcbox_docs/blob/master/CODE_OF_CONDUCT.md)
       options:
         - label: I agree to follow this project's Code of Conduct
           required: true

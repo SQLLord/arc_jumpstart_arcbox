@@ -18,7 +18,14 @@ $resourceTags = $env:resourceTags
 $namingPrefix = $env:namingPrefix
 
 # Moved VHD storage account details here to keep only in place to prevent duplicates.
-$vhdSourceFolder = 'https://jumpstartprodsg.blob.core.windows.net/arcbox/prod/*'
+# The source is passed in by the deployment (Bootstrap.ps1); default to the public Jumpstart storage account
+$vhdSourceUrl = if ($Env:vhdSourceUrl) { $Env:vhdSourceUrl.TrimEnd('/') } else { 'https://jumpstartprodsg.blob.core.windows.net/arcbox/prod' }
+$vhdSourceFolder = "$vhdSourceUrl/*"
+
+# A private storage account is read with the client VM managed identity (granted Storage Blob Data Reader by the deployment)
+if ($Env:vhdSourceAuth -eq 'ManagedIdentity') {
+    $Env:AZCOPY_AUTO_LOGIN_TYPE = 'MSI'
+}
 
 # Archive existing log file and create new one
 $logFilePath = "$Env:ArcBoxLogsDir\ArcServersLogonScript.log"

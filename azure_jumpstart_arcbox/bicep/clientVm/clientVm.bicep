@@ -135,6 +135,21 @@ param enableAzureSpotPricing bool = false
 @description('Name of the Key Vault holding the ArcBox secrets')
 param keyVaultName string
 
+@description('Optional. Storage account holding the nested VM VHD images. Leave empty to download them anonymously from the public Jumpstart storage account.')
+param vhdStorageAccountName string = ''
+
+@description('Resource group of the VHD storage account (same subscription as the deployment)')
+param vhdStorageAccountResourceGroup string = resourceGroup().name
+
+@description('Blob container holding the nested VM VHD images')
+param vhdContainerName string = 'arcboxvhds'
+
+var useVhdStorageAccount = !empty(vhdStorageAccountName)
+var vhdSourceUrl = useVhdStorageAccount
+  ? 'https://${vhdStorageAccountName}.blob.${environment().suffixes.storage}/${vhdContainerName}'
+  : 'https://jumpstartprodsg.blob.core.windows.net/arcbox/prod'
+var vhdSourceAuth = useVhdStorageAccount ? 'ManagedIdentity' : 'Anonymous'
+
 var bastionName = '${namingPrefix}-Bastion'
 var publicIpAddressName = deployBastion == false ? '${vmName}-PIP' : '${bastionName}-PIP'
 var networkInterfaceName = '${vmName}-NIC'
@@ -254,9 +269,22 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-07-01' = {
   }
 }
 
+// Grant the client VM read access to the private VHD storage account before Bootstrap runs
+module vhdStorageRoleAssignment 'vhdStorageRoleAssignment.bicep' = if (useVhdStorageAccount) {
+  name: 'vhdStorageRoleAssignment'
+  scope: resourceGroup(vhdStorageAccountResourceGroup)
+  params: {
+    storageAccountName: vhdStorageAccountName
+    principalId: vm.identity.principalId
+  }
+}
+
 resource vmBootstrap 'Microsoft.Compute/virtualMachines/extensions@2024-07-01' = {
   parent: vm
   name: 'Bootstrap'
+  dependsOn: [
+    vhdStorageRoleAssignment
+  ]
   location: location
   tags: {
     displayName: 'config-bootstrap'
@@ -270,7 +298,7 @@ resource vmBootstrap 'Microsoft.Compute/virtualMachines/extensions@2024-07-01' =
       fileUris: [
         uri(templateBaseUrl, 'artifacts/Bootstrap.ps1')
       ]
-      commandToExecute: 'powershell.exe -ExecutionPolicy Bypass -File Bootstrap.ps1 -adminUsername ${windowsAdminUsername} -tenantId ${tenantId} -spnAuthority ${spnAuthority} -subscriptionId ${subscription().subscriptionId} -resourceGroup ${resourceGroup().name} -azdataUsername ${azdataUsername} -acceptEula ${acceptEula} -registryUsername ${registryUsername} -arcDcName ${arcDcName} -azureLocation ${location} -mssqlmiName ${mssqlmiName} -POSTGRES_NAME ${postgresName} -POSTGRES_WORKER_NODE_COUNT ${postgresWorkerNodeCount} -POSTGRES_DATASIZE ${postgresDatasize} -POSTGRES_SERVICE_TYPE ${postgresServiceType} -stagingStorageAccountName ${stagingStorageAccountName} -workspaceName ${workspaceName} -templateBaseUrl ${templateBaseUrl} -flavor ${flavor} -k3sArcDataClusterName ${k3sArcDataClusterName} -k3sArcClusterName ${k3sArcClusterName} -aksArcClusterName ${aksArcClusterName} -aksdrArcClusterName ${aksdrArcClusterName} -githubUser ${githubUser} -githubBranch ${githubBranch} -vmAutologon ${vmAutologon} -rdpPort ${rdpPort} -addsDomainName ${addsDomainName} -customLocationRPOID ${customLocationRPOID} -resourceTags ${resourceTags} -namingPrefix ${namingPrefix} -debugEnabled ${debugEnabled} -sqlServerEdition ${sqlServerEdition} -autoShutdownEnabled ${autoShutdownEnabled} -keyVaultName ${keyVaultName}'
+      commandToExecute: 'powershell.exe -ExecutionPolicy Bypass -File Bootstrap.ps1 -adminUsername ${windowsAdminUsername} -tenantId ${tenantId} -spnAuthority ${spnAuthority} -subscriptionId ${subscription().subscriptionId} -resourceGroup ${resourceGroup().name} -azdataUsername ${azdataUsername} -acceptEula ${acceptEula} -registryUsername ${registryUsername} -arcDcName ${arcDcName} -azureLocation ${location} -mssqlmiName ${mssqlmiName} -POSTGRES_NAME ${postgresName} -POSTGRES_WORKER_NODE_COUNT ${postgresWorkerNodeCount} -POSTGRES_DATASIZE ${postgresDatasize} -POSTGRES_SERVICE_TYPE ${postgresServiceType} -stagingStorageAccountName ${stagingStorageAccountName} -workspaceName ${workspaceName} -templateBaseUrl ${templateBaseUrl} -flavor ${flavor} -k3sArcDataClusterName ${k3sArcDataClusterName} -k3sArcClusterName ${k3sArcClusterName} -aksArcClusterName ${aksArcClusterName} -aksdrArcClusterName ${aksdrArcClusterName} -githubUser ${githubUser} -githubBranch ${githubBranch} -vmAutologon ${vmAutologon} -rdpPort ${rdpPort} -addsDomainName ${addsDomainName} -customLocationRPOID ${customLocationRPOID} -resourceTags ${resourceTags} -namingPrefix ${namingPrefix} -debugEnabled ${debugEnabled} -sqlServerEdition ${sqlServerEdition} -autoShutdownEnabled ${autoShutdownEnabled} -keyVaultName ${keyVaultName} -vhdSourceUrl ${vhdSourceUrl} -vhdSourceAuth ${vhdSourceAuth}'
     }
   }
 }

@@ -52,7 +52,7 @@ Resize-Partition -DriveLetter C -Size $(Get-PartitionSupportedSize -DriveLetter 
 
 # Download artifacts
 Invoke-WebRequest ($templateBaseUrl + "artifacts/LogonScript.ps1") -OutFile "$tempDir\LogonScript.ps1"
-Invoke-WebRequest "https://raw.githubusercontent.com/Azure/arc_jumpstart_docs/main/img/wallpaper/jumpstart_wallpaper_dark.png" -OutFile "$tempDir\wallpaper.png"
+Invoke-WebRequest "https://raw.githubusercontent.com/SQLLord/arc_jumpstart_Arcbox_docs/master/img/wallpaper/jumpstart_wallpaper_dark.png" -OutFile "$tempDir\wallpaper.png"
 
 # Installing tools
 workflow ClientTools_01

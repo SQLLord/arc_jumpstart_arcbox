@@ -293,7 +293,7 @@ Invoke-WebRequest ($templateBaseUrl + "artifacts/PowerShell/Modules/contoso_supe
 Invoke-WebRequest ($templateBaseUrl + "artifacts/PowerShell/Modules/contoso_motors.psm1") -OutFile "$AgPowerShellDir\contoso_motors.psm1"
 Invoke-WebRequest ($templateBaseUrl + "artifacts/PowerShell/Modules/contoso_hypermarket.psm1") -OutFile "$AgPowerShellDir\contoso_hypermarket.psm1"
 Invoke-WebRequest ($templateBaseUrl + "artifacts/settings/DockerDesktopSettings.json") -OutFile "$AgToolsDir\settings.json"
-Invoke-WebRequest "https://raw.githubusercontent.com/Azure/arc_jumpstart_docs/main/img/wallpaper/agora_wallpaper_dark.png" -OutFile $AgDirectory\wallpaper.png
+Invoke-WebRequest "https://raw.githubusercontent.com/SQLLord/arc_jumpstart_Arcbox_docs/master/img/wallpaper/agora_wallpaper_dark.png" -OutFile $AgDirectory\wallpaper.png
 Invoke-WebRequest ($templateBaseUrl + "artifacts/monitoring/grafana-node-exporter-full.json") -OutFile "$AgMonitoringDir\grafana-node-exporter-full.json"
 Invoke-WebRequest ($templateBaseUrl + "artifacts/monitoring/grafana-cluster-global.json") -OutFile "$AgMonitoringDir\grafana-cluster-global.json"
 Invoke-WebRequest ($templateBaseUrl + "artifacts/monitoring/arc-inventory-workbook.bicep") -OutFile "$AgMonitoringDir\arc-inventory-workbook.bicep"

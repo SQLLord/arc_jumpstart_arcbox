@@ -2,13 +2,13 @@
 
 # ⚡ Arc Jumpstart source code
 
-Welcome to the Arc Jumpstart source code repository! This repository is your go-to resource for working with and contributing to the Arc Jumpstart automation scripts and tools and acts as the backend source code repository which complements our [documentation repository](https://github.com/Azure/arc_jumpstart_docs) that eventually populates the [Arc Jumpstart](https://aka.ms/arcjumpstart) website.
+Welcome to the Arc Jumpstart source code repository! This repository is your go-to resource for working with and contributing to the Arc Jumpstart automation scripts and tools and acts as the backend source code repository which complements our [documentation repository](https://github.com/SQLLord/arc_jumpstart_Arcbox_docs) that eventually populates the [Arc Jumpstart](https://aka.ms/arcjumpstart) website.
 
 <p align="center">
-  <img src="https://github.com/Azure/arc_jumpstart_docs/raw/main/img/logo/jumpstart.png" alt="Arc Jumpstart logo" width="320">
+  <img src="https://github.com/SQLLord/arc_jumpstart_Arcbox_docs/raw/master/img/logo/jumpstart.png" alt="Arc Jumpstart logo" width="320">
 </p>
 
-**Note:** This repository does not contain the source code for the documentation of the Arc Jumpstart which can be found in another [dedicated repository](https://github.com/Azure/arc_jumpstart_docs).
+**Note:** This repository does not contain the source code for the documentation of the Arc Jumpstart which can be found in another [dedicated repository](https://github.com/SQLLord/arc_jumpstart_Arcbox_docs).
 
 ## 📦 What you'll find here
 
@@ -17,7 +17,7 @@ Welcome to the Arc Jumpstart source code repository! This repository is your go-
 
 ## 🛠️ How to Utilize this repository
 
-This source code repository is designed with contributors in mind and works in tandem with the [our documentation repository](https://github.com/Azure/arc_jumpstart_docs). While it's not mandatory, it's highly likely that contributors will need to clone both repositories to effectively contribute to Arc Jumpstart.
+This source code repository is designed with contributors in mind and works in tandem with the [our documentation repository](https://github.com/SQLLord/arc_jumpstart_Arcbox_docs). While it's not mandatory, it's highly likely that contributors will need to clone both repositories to effectively contribute to Arc Jumpstart.
 
 Before you start, we recommend familiarizing yourself with our comprehensive [contribution guidelines](https://aka.ms/JumpstartContribution). These guidelines outline the standards and practices we follow, ensuring consistency and quality across our documentation.
 
@@ -27,11 +27,11 @@ Happy contributing!
 
 ## 📥 Cloning the repositories
 
-To contribute, you'll likely need to clone both this repository and the [documentation repository](https://github.com/Azure/arc_jumpstart_docs). Use the following commands:
+To contribute, you'll likely need to clone both this repository and the [documentation repository](https://github.com/SQLLord/arc_jumpstart_Arcbox_docs). Use the following commands:
 
 ```bash
 git clone https://github.com/SQLLord/arc_jumpstart_arcbox.git
-git clone https://github.com/Azure/arc_jumpstart_docs.git
+git clone https://github.com/SQLLord/arc_jumpstart_Arcbox_docs.git
 ```
 
 As we continuously improve and expand Arc Jumpstart, we recommend keeping your local clones of the repositories up-to-date. You can do this by pulling the latest changes from the main branch:

@@ -90,6 +90,15 @@ param namingPrefix string = 'ArcBox'
 @maxLength(24)
 param keyVaultName string = ''
 
+@description('Optional. Storage account holding the nested VM VHD images (private; accessed with the client VM managed identity). Leave empty to use the public Jumpstart storage account.')
+param vhdStorageAccountName string = 'arcboxfilesdonotdelete'
+
+@description('Resource group of the VHD storage account (same subscription as the deployment)')
+param vhdStorageAccountResourceGroup string = 'Arcbox'
+
+@description('Blob container holding the nested VM VHD images')
+param vhdContainerName string = 'arcboxvhds'
+
 @description('Do not set. Seeds the auto-generated Key Vault name so each deployment gets a unique, never-before-used name.')
 param deploymentTimestamp string = utcNow()
 
@@ -196,6 +205,9 @@ module clientVmDeployment 'clientVm/clientVm.bicep' = {
   name: 'clientVmDeployment'
   params: {
     keyVaultName: resolvedKeyVaultName
+    vhdStorageAccountName: vhdStorageAccountName
+    vhdStorageAccountResourceGroup: vhdStorageAccountResourceGroup
+    vhdContainerName: vhdContainerName
     windowsAdminUsername: windowsAdminUsername
     windowsAdminPassword: windowsAdminPassword
     tenantId: tenantId

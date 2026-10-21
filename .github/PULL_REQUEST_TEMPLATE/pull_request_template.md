@@ -7,7 +7,7 @@
 <!--- If fixing a bug or implementing a feature, please link to the issue here: -->
 Fixes # (issue)
 
-> **Note:** If your pull request is related to documentation, we kindly ask you to open both an issue and a PR in our [documentation repository](https://github.com/Azure/arc_jumpstart_docs).
+> **Note:** If your pull request is related to documentation, we kindly ask you to open both an issue and a PR in our [documentation repository](https://github.com/SQLLord/arc_jumpstart_Arcbox_docs).
 
 ## How Has This Been Tested?
 

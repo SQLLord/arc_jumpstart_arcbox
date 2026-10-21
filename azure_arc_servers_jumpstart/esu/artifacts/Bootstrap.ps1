@@ -98,7 +98,7 @@ foreach ($app in $appsToInstall) {
 Write-Header "Fetching GitHub Artifacts"
 
 Write-Host "Fetching Artifacts"
-Invoke-WebRequest "https://raw.githubusercontent.com/Azure/arc_jumpstart_docs/main/img/wallpaper/jumpstart_wallpaper_dark.png" -OutFile $Env:ESUDir\wallpaper.png
+Invoke-WebRequest "https://raw.githubusercontent.com/SQLLord/arc_jumpstart_Arcbox_docs/master/img/wallpaper/jumpstart_wallpaper_dark.png" -OutFile $Env:ESUDir\wallpaper.png
 
 Write-Host "Fetching Artifacts"
 Invoke-WebRequest ($Env:templateBaseUrl + "artifacts/LogonScript.ps1") -OutFile $Env:ESUDir\LogonScript.ps1
