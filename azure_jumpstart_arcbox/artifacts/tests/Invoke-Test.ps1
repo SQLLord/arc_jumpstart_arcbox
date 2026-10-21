@@ -35,7 +35,18 @@ Set-Content "$Env:windir\TEMP\arcbox-tests-failed.txt" $tests_failed
 
 Set-JSDesktopBackground -ImagePath "$Env:ArcBoxDir\wallpaper.bmp"
 
-bginfo.exe $Env:ArcBoxTestsDir\arcbox-bginfo.bgi /timer:0 /NOLICPROMPT
+# Use BGInfo from PATH (winget) or from the fallback location used by WinGet.ps1
+$bgInfoExe = (Get-Command bginfo.exe -ErrorAction SilentlyContinue).Source
+if (-not $bgInfoExe -and (Test-Path 'C:\Tools\BGInfo\bginfo.exe')) {
+    $bgInfoExe = 'C:\Tools\BGInfo\bginfo.exe'
+}
+
+if ($bgInfoExe) {
+    & $bgInfoExe $Env:ArcBoxTestsDir\arcbox-bginfo.bgi /timer:0 /NOLICPROMPT
+}
+else {
+    Write-Warning "BGInfo not found, skipping test results on wallpaper"
+}
 
 $DeploymentStatusPath = "C:\ArcBox\Logs\DeploymentStatus.log"
 

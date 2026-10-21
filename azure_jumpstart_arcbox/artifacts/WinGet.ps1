@@ -47,6 +47,28 @@ switch ($env:flavor) {
     'ITPro' { winget configure --file C:\ArcBox\DSC\itpro.dsc.yml --accept-configuration-agreements --disable-interactivity }
 }
 
+# Fallback for BGInfo: the winget package often fails with a hash mismatch (0x8A150011) because Sysinternals updates the download in place
+if (-not (Get-Command bginfo.exe -ErrorAction SilentlyContinue)) {
+    Write-Host "BGInfo not found after WinGet configuration, downloading it from Sysinternals"
+    $bgInfoDir = 'C:\Tools\BGInfo'
+    $bgInfoZip = Join-Path $env:TEMP 'BGInfo.zip'
+    try {
+        Invoke-WebRequest -Uri 'https://download.sysinternals.com/files/BGInfo.zip' -OutFile $bgInfoZip -UseBasicParsing
+        Expand-Archive -Path $bgInfoZip -DestinationPath $bgInfoDir -Force
+        Copy-Item -Path (Join-Path $bgInfoDir 'Bginfo64.exe') -Destination (Join-Path $bgInfoDir 'bginfo.exe') -Force
+
+        $machinePath = [Environment]::GetEnvironmentVariable('Path', 'Machine')
+        if ($machinePath -notlike "*$bgInfoDir*") {
+            [Environment]::SetEnvironmentVariable('Path', "$machinePath;$bgInfoDir", 'Machine')
+        }
+        $env:Path += ";$bgInfoDir"
+        Write-Host "BGInfo installed to $bgInfoDir"
+    }
+    catch {
+        Write-Warning "BGInfo fallback download failed: $_"
+    }
+}
+
 # Start remaining logon scripts
 Get-ScheduledTask *LogonScript* | Start-ScheduledTask
 
