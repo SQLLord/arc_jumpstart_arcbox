@@ -16,7 +16,7 @@ $existingJob = Get-AzVMRunCommand -ResourceGroupName $ResourceGroupName -VMName 
 if ($existingJob) {
     Write-Host "A RetrievePesterResults run command is already provisioned. Skipping new execution." -ForegroundColor Yellow
 } else {
-    Set-AzVMRunCommand -ResourceGroupName $ResourceGroupName -VMName ArcBox-Client -RunCommandName RetrievePesterResults -Location $Location -SourceScriptUri "https://raw.githubusercontent.com/$githubAccount/azure_arc/$githubBranch/azure_jumpstart_arcbox/artifacts/integration_tests/scripts/Send-PesterResult.ps1" -AsyncExecution
+    Set-AzVMRunCommand -ResourceGroupName $ResourceGroupName -VMName ArcBox-Client -RunCommandName RetrievePesterResults -Location $Location -SourceScriptUri "https://raw.githubusercontent.com/$githubAccount/arc_jumpstart_arcbox/$githubBranch/azure_jumpstart_arcbox/artifacts/integration_tests/scripts/Send-PesterResult.ps1" -AsyncExecution
 }
 
 $timeoutMinutes = 180 # 3 hours timeout

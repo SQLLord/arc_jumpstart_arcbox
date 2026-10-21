@@ -1,4 +1,4 @@
-[![Stale Branches](https://github.com/microsoft/azure_arc/actions/workflows/stale-branches.yml/badge.svg)](https://github.com/microsoft/azure_arc/actions/workflows/stale-branches.yml)
+[![Stale Branches](https://github.com/SQLLord/arc_jumpstart_arcbox/actions/workflows/stale-branches.yml/badge.svg)](https://github.com/SQLLord/arc_jumpstart_arcbox/actions/workflows/stale-branches.yml)
 
 # ⚡ Arc Jumpstart source code
 
@@ -30,7 +30,7 @@ Happy contributing!
 To contribute, you'll likely need to clone both this repository and the [documentation repository](https://github.com/Azure/arc_jumpstart_docs). Use the following commands:
 
 ```bash
-git clone https://github.com/microsoft/azure_arc.git
+git clone https://github.com/SQLLord/arc_jumpstart_arcbox.git
 git clone https://github.com/Azure/arc_jumpstart_docs.git
 ```
 
@@ -43,7 +43,7 @@ git pull origin main
 You can use partial clones if you want to reduce the time and size it takes to clone this repository. By default, when you clone this repository, you get all the files and their associated metadata, including blobs and diff history. However, if you don't need all of this information, you can use the following command to clone the repository without the blobs:
 
 ```bash
-git clone --filter=blob:none https://github.com/microsoft/azure_arc
+git clone --filter=blob:none https://github.com/SQLLord/arc_jumpstart_arcbox
 ```
 
 ## 🙌 Contribution and feedback

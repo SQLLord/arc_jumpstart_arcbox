@@ -1,5 +1,5 @@
 locals {
-  template_base_url           = "https://raw.githubusercontent.com/${var.github_account}/azure_arc/${var.github_branch}/azure_arc_k8s_jumpstart/rancher_k3s/azure/terraform/"
+  template_base_url           = "https://raw.githubusercontent.com/${var.github_account}/arc_jumpstart_arcbox/${var.github_branch}/azure_arc_k8s_jumpstart/rancher_k3s/azure/terraform/"
   vm_name                     = "${var.azure_vm_name}-${random_string.guid.result}"
   virtual_network_name        = "${var.azure_vm_name}-VNET-${random_string.guid.result}"
   public_ip_name              = "${var.azure_vm_name}-PIP-${random_string.guid.result}"

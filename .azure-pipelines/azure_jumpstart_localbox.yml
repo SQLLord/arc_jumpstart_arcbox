@@ -96,9 +96,9 @@ stages:
           Write-Host "Deploying to $(RGname)"
           $githubAccount = "$(githubAccount)"
           $githubBranch = "$(githubBranch)"
-          if ($githubAccount -ne "microsoft") {
+          if ($githubAccount -ne "SQLLord") {
             Write-Host "Checking out $githubAccount/$githubBranch"
-            git remote add upstream https://github.com/$($githubAccount)/azure_arc.git
+            git remote add upstream https://github.com/$($githubAccount)/arc_jumpstart_arcbox.git
             git fetch upstream
             git checkout -b $githubBranch upstream/$githubBranch
           }

@@ -34,10 +34,10 @@ param sshRSAPublicKey string
 param logAnalyticsWorkspaceName string = 'Ag-Workspace-${namingGuid}'
 
 @description('Target GitHub account')
-param githubAccount string = 'microsoft'
+param githubAccount string = 'SQLLord'
 
 @description('Target GitHub branch')
-param githubBranch string = 'main'
+param githubBranch string = 'master'
 
 @description('Choice to deploy Bastion to connect to the client VM')
 param deployBastion bool = false
@@ -105,16 +105,15 @@ param natGatewayName string = 'Ag-NatGateway-${namingGuid}'
 
 @description('The sku name of the K3s cluster worker nodes.')
 @allowed([
-  'Standard_D8s_v5'
+  'Standard_D8s_v7'
   'Standard_NV6ads_A10_v5'
-  'Standard_NV4as_v4'
 ])
-param k8sWorkerNodesSku string = 'Standard_D8s_v5'
-//param k8sWorkerNodesSku string = deployGPUNodes ? 'Standard_NV4as_v4' : 'Standard_D8s_v5'
+param k8sWorkerNodesSku string = 'Standard_D8s_v7'
+//param k8sWorkerNodesSku string = deployGPUNodes ? 'Standard_NV6ads_A10_v5' : 'Standard_D8s_v7'
 
 // param deployGPUNodes bool = false
 
-var templateBaseUrl = 'https://raw.githubusercontent.com/${githubAccount}/azure_arc/refs/heads/${githubBranch}/azure_jumpstart_ag/'
+var templateBaseUrl = 'https://raw.githubusercontent.com/${githubAccount}/arc_jumpstart_arcbox/refs/heads/${githubBranch}/azure_jumpstart_ag/'
 var k3sClusterNodesCount = 2 // Number of nodes to deploy in the K3s cluster
 
 var customerUsageAttributionDeploymentName = '2d49dcea-99e4-4bf1-8540-2ead108c4ddf'

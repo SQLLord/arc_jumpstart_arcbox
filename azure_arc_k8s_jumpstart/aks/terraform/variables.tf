@@ -30,7 +30,7 @@ variable "node_count" {
 
 variable "vm_size" {
   description = "The Azure VM size for this AKS Managed Kubernetes Cluster node pool"
-  default     = "Standard_DS2_v2"
+  default     = "Standard_D2s_v7"
 }
 
 variable "client_id" {

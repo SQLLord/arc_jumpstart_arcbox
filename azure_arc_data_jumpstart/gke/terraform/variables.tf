@@ -132,7 +132,7 @@ variable "deploy_PostgreSQL" {
 variable "templateBaseUrl" {
   description = "Git repo base URL for downloading artifacts for Client VM bootstrap script"
   type        = string
-  default     = "https://raw.githubusercontent.com/microsoft/azure_arc/main/azure_arc_data_jumpstart/gke/terraform/"
+  default     = "https://raw.githubusercontent.com/SQLLord/arc_jumpstart_arcbox/master/azure_arc_data_jumpstart/gke/terraform/"
 }
 
 variable "MY_IP" {

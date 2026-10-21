@@ -72,10 +72,10 @@ param cosmosDBEndpoint string
 param rdpPort string = '3389'
 
 @description('Target GitHub account')
-param githubAccount string = 'microsoft'
+param githubAccount string = 'SQLLord'
 
 @description('Target GitHub branch')
-param githubBranch string = 'main'
+param githubBranch string = 'master'
 
 @description('GitHub Personal access token for the user account')
 @secure()
@@ -139,7 +139,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2022-11-01' = {
   tags: resourceTags
   properties: {
     hardwareProfile: {
-      vmSize: 'Standard_D32s_v5'
+      vmSize: 'Standard_D32s_v7'
     }
     storageProfile: {
       osDisk: {

@@ -717,7 +717,7 @@ function Set-ACSA {
         --scope "/subscriptions/$subscriptionId/resourceGroups/$resourceGroup/providers/Microsoft.Storage/storageAccounts/$storageAccountName"
 
     # Deploy the ACSA application #NEED TO BE CHANGED
-    $acsadeployYamlUrl = "https://raw.githubusercontent.com/microsoft/azure_arc/main/azure_edge_iot_ops_jumpstart/acsa_fault_detection/yaml/acsa-edge-sub-volume.yaml"
+    $acsadeployYamlUrl = "https://raw.githubusercontent.com/SQLLord/arc_jumpstart_arcbox/master/azure_edge_iot_ops_jumpstart/acsa_fault_detection/yaml/acsa-edge-sub-volume.yaml"
     $acsadeployYamlPath = "acsa-edge-sub-volume.yaml"
     Invoke-WebRequest -Uri $acsadeployYamlUrl -OutFile $acsadeployYamlPath
 

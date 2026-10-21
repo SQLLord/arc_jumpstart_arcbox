@@ -38,10 +38,10 @@ param sshRSAPublicKey string = ''
 param logAnalyticsWorkspaceName string = 'Ag-Workspace-${namingGuid}'
 
 @description('Target GitHub account')
-param githubAccount string = 'microsoft'
+param githubAccount string = 'SQLLord'
 
 @description('Target GitHub branch')
-param githubBranch string = 'main'
+param githubBranch string = 'master'
 
 @description('Choice to deploy Bastion to connect to the client VM')
 param deployBastion bool = false
@@ -90,7 +90,7 @@ param rdpPort string = '3389'
 @description('The agora scenario to be deployed')
 param scenario string = 'contoso_supermarket'
 
-var templateBaseUrl = 'https://raw.githubusercontent.com/${githubAccount}/azure_arc/${githubBranch}/azure_jumpstart_ag/'
+var templateBaseUrl = 'https://raw.githubusercontent.com/${githubAccount}/arc_jumpstart_arcbox/${githubBranch}/azure_jumpstart_ag/'
 
 targetScope = 'subscription'
 

@@ -27,7 +27,7 @@
       "value": "<your unique Log Analytics workspace name>"
     },
     "templateBaseUrl": {
-      "value": "https://raw.githubusercontent.com/microsoft/azure_arc/main/azure_arc_ml_jumpstart/aks/arm_template/"
+      "value": "https://raw.githubusercontent.com/SQLLord/arc_jumpstart_arcbox/master/azure_arc_ml_jumpstart/aks/arm_template/"
     },
     "kubernetesVersion": {
       "value": "1.28.5"

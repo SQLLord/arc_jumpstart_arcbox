@@ -85,14 +85,14 @@
     },
     "githubAccount": {
       "type": "string",
-      "defaultValue": "microsoft",
+      "defaultValue": "SQLLord",
       "metadata": {
         "description": "Target GitHub account"
       }
     },
     "githubBranch": {
       "type": "string",
-      "defaultValue": "main",
+      "defaultValue": "master",
       "metadata": {
         "description": "Target GitHub branch"
       }
@@ -216,7 +216,7 @@
     }
   },
   "variables": {
-    "templateBaseUrl": "[format('https://raw.githubusercontent.com/{0}/azure_arc/{1}/azure_jumpstart_arcbox/', parameters('githubAccount'), parameters('githubBranch'))]",
+    "templateBaseUrl": "[format('https://raw.githubusercontent.com/{0}/arc_jumpstart_arcbox/{1}/azure_jumpstart_arcbox/', parameters('githubAccount'), parameters('githubBranch'))]",
     "aksArcDataClusterName": "[format('{0}-AKS-Data-{1}', parameters('namingPrefix'), parameters('guid'))]",
     "aksDrArcDataClusterName": "[format('{0}-AKS-DR-Data-{1}', parameters('namingPrefix'), parameters('guid'))]",
     "k3sArcDataClusterName": "[format('{0}-K3s-Data-{1}', parameters('namingPrefix'), parameters('guid'))]",
@@ -317,7 +317,7 @@
             },
             "vmSize": {
               "type": "string",
-              "defaultValue": "Standard_B4ms",
+              "defaultValue": "Standard_D4s_v7",
               "metadata": {
                 "description": "The size of the VM"
               }
@@ -691,7 +691,7 @@
           "variables": {
             "networkInterfaceName": "[format('{0}-NIC', parameters('vmName'))]",
             "osDiskType": "Premium_LRS",
-            "vmSize": "[if(equals(parameters('flavor'), 'DevOps'), 'Standard_B2ms', 'Standard_B8ms')]",
+            "vmSize": "[if(equals(parameters('flavor'), 'DevOps'), 'Standard_D2s_v7', 'Standard_D8s_v7')]",
             "diskSize": "[if(equals(parameters('flavor'), 'DataOps'), 512, 64)]"
           },
           "resources": [
@@ -922,7 +922,7 @@
             },
             "vmSize": {
               "type": "string",
-              "defaultValue": "Standard_B4ms",
+              "defaultValue": "Standard_D4s_v7",
               "metadata": {
                 "description": "The size of the VM"
               }
@@ -1296,7 +1296,7 @@
           "variables": {
             "networkInterfaceName": "[format('{0}-NIC', parameters('vmName'))]",
             "osDiskType": "Premium_LRS",
-            "vmSize": "[if(equals(parameters('flavor'), 'DevOps'), 'Standard_B2ms', 'Standard_B8ms')]",
+            "vmSize": "[if(equals(parameters('flavor'), 'DevOps'), 'Standard_D2s_v7', 'Standard_D8s_v7')]",
             "diskSize": "[if(equals(parameters('flavor'), 'DataOps'), 512, 64)]"
           },
           "resources": [
@@ -1910,7 +1910,7 @@
               },
               "properties": {
                 "hardwareProfile": {
-                  "vmSize": "[if(equals(parameters('flavor'), 'DevOps'), 'Standard_B4ms', if(equals(parameters('flavor'), 'DataOps'), 'Standard_D8s_v5', 'Standard_D8s_v5'))]"
+                  "vmSize": "[if(equals(parameters('flavor'), 'DevOps'), 'Standard_D4s_v7', if(equals(parameters('flavor'), 'DataOps'), 'Standard_D8s_v7', 'Standard_D8s_v7'))]"
                 },
                 "storageProfile": {
                   "osDisk": {
@@ -5752,7 +5752,7 @@
             },
             "vmSize": {
               "type": "string",
-              "defaultValue": "Standard_B2ms",
+              "defaultValue": "Standard_D2s_v7",
               "metadata": {
                 "description": "The size of the VM"
               }
@@ -9530,7 +9530,7 @@
             },
             "agentVMSize": {
               "type": "string",
-              "defaultValue": "Standard_D8s_v4",
+              "defaultValue": "Standard_D8s_v7",
               "metadata": {
                 "description": "The size of the Virtual Machine"
               }

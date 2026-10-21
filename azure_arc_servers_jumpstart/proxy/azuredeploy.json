@@ -18,7 +18,7 @@
     },
       "vmSize": {
         "type": "string",
-        "defaultValue": "Standard_D4s_v3",
+        "defaultValue": "Standard_D4s_v7",
         "metadata": {
           "description": "The size of the VM"
         }
@@ -162,7 +162,7 @@
                     "scope": "Inner"
                 },
                 "templateLink": {
-                    "uri": "https://raw.githubusercontent.com/microsoft/azure_arc/main/azure_arc_servers_jumpstart/proxy/ARM/cloudDeploy.json"
+                    "uri": "https://raw.githubusercontent.com/SQLLord/arc_jumpstart_arcbox/master/azure_arc_servers_jumpstart/proxy/ARM/cloudDeploy.json"
                 },
                 "mode": "Incremental",
                 "parameters": {
@@ -345,7 +345,7 @@
         "autoUpgradeMinorVersion": true,
         "protectedSettings": {
           "fileUris": [
-            "https://raw.githubusercontent.com/microsoft/azure_arc/main/azure_arc_servers_jumpstart/proxy/artifacts/install_arc_agent_proxy.sh"
+            "https://raw.githubusercontent.com/SQLLord/arc_jumpstart_arcbox/master/azure_arc_servers_jumpstart/proxy/artifacts/install_arc_agent_proxy.sh"
           ],
           "commandToExecute": "[concat('./install_arc_agent_proxy.sh ', parameters('adminUsername'), ' ', parameters ('subscriptionID'), ' ', parameters('servicePrincipalClient'), ' ', parameters('servicePrincipalClientSecret'), ' ', parameters('tenantId'), ' ', parameters('resourceGroup'), ' ', parameters('location'), ' ', parameters('vmName'), ' ', parameters('ProxyPrivateIP'), ' ', parameters('adminPassword'))]"
         }

@@ -46,7 +46,7 @@ param namingPrefix string = 'ArcBox'
 
 var networkInterfaceName = '${vmName}-NIC'
 var osDiskType = 'Premium_LRS'
-var vmSize = (flavor == 'DevOps') ? 'Standard_B2ms' : 'Standard_B8ms'
+var vmSize = (flavor == 'DevOps') ? 'Standard_D2s_v7' : 'Standard_D8s_v7'
 var diskSize = (flavor == 'DataOps') ? 512 : 64
 
 resource networkInterface 'Microsoft.Network/networkInterfaces@2024-05-01' = {

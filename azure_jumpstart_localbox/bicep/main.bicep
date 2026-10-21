@@ -20,10 +20,10 @@ param logAnalyticsWorkspaceName string = 'LocalBox-Workspace'
 param natDNS string = '8.8.8.8'
 
 @description('Target GitHub account')
-param githubAccount string = 'microsoft'
+param githubAccount string = 'SQLLord'
 
 @description('Target GitHub branch')
-param githubBranch string = 'main'
+param githubBranch string = 'master'
 
 @description('Choice to deploy Bastion to connect to the client VM')
 param deployBastion bool = false
@@ -48,10 +48,9 @@ param natGatewayName string = 'LocalBox-NatGateway'
 
 @description('The size of the Virtual Machine')
 @allowed([
-  'Standard_E32s_v5'
-  'Standard_E32s_v6'
+  'Standard_E32s_v7'
 ])
-param vmSize string = 'Standard_E32s_v6'
+param vmSize string = 'Standard_E32s_v7'
 
 @description('Option to enable spot pricing for the LocalBox Client VM')
 param enableAzureSpotPricing bool = false
@@ -84,7 +83,7 @@ var resourceTags = governResourceTags ? union(tags, {
     SecurityControl: 'Ignore'
 }) : tags
 
-var templateBaseUrl = 'https://raw.githubusercontent.com/${githubAccount}/azure_arc/${githubBranch}/azure_jumpstart_localbox/'
+var templateBaseUrl = 'https://raw.githubusercontent.com/${githubAccount}/arc_jumpstart_arcbox/${githubBranch}/azure_jumpstart_localbox/'
 var customerUsageAttributionDeploymentName = 'feada075-1961-4b99-829f-fa3828068933'
 
 module mgmtArtifactsAndPolicyDeployment 'mgmt/mgmtArtifacts.bicep' = {

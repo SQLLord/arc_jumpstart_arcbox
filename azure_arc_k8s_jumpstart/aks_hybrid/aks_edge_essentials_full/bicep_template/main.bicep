@@ -21,10 +21,10 @@ param windowsAdminUsername string
 param windowsAdminPassword string
 
 @description('Target GitHub account')
-param githubAccount string = 'microsoft'
+param githubAccount string = 'SQLLord'
 
 @description('Target GitHub branch')
-param githubBranch string = 'main'
+param githubBranch string = 'master'
 
 @description('Choice to deploy Bastion to connect to the client VM')
 param deployBastion bool = false
@@ -47,7 +47,7 @@ To pin a specific version, use the format '1.14'. To use the latest schema versi
 ''')
 param AKSEEPinnedSchemaVersion string = '1.14'
 
-var templateBaseUrl = 'https://raw.githubusercontent.com/${githubAccount}/azure_arc/${githubBranch}/azure_arc_k8s_jumpstart/aks_hybrid/aks_edge_essentials_full/bicep_template/'
+var templateBaseUrl = 'https://raw.githubusercontent.com/${githubAccount}/arc_jumpstart_arcbox/${githubBranch}/azure_arc_k8s_jumpstart/aks_hybrid/aks_edge_essentials_full/bicep_template/'
 
 module networkDeployment 'mgmt/network.bicep' = {
   name: 'networkDeployment'

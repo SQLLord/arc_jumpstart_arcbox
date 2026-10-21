@@ -21,10 +21,10 @@ param windowsAdminUsername string
 param windowsAdminPassword string
 
 @description('Target GitHub account')
-param githubAccount string = 'microsoft'
+param githubAccount string = 'SQLLord'
 
 @description('Target GitHub branch')
-param githubBranch string = 'main'
+param githubBranch string = 'master'
 
 @description('Choice to deploy Bastion to connect to the client VM')
 param deployBastion bool = false
@@ -38,7 +38,7 @@ param subnetName string = 'Subnet-VM'
 @description('Override default RDP port using this parameter. Default is 3389. No changes will be made to the client VM.')
 param rdpPort string = '3389'
 
-var templateBaseUrl = 'https://raw.githubusercontent.com/${githubAccount}/azure_arc/${githubBranch}/azure_arc_k8s_jumpstart/aks_hybrid/aks_edge_essentials_single_vi/'
+var templateBaseUrl = 'https://raw.githubusercontent.com/${githubAccount}/arc_jumpstart_arcbox/${githubBranch}/azure_arc_k8s_jumpstart/aks_hybrid/aks_edge_essentials_single_vi/'
 
 module mediaServices 'mediaServices.bicep' = {
   name: 'mediaServicesDeployment'

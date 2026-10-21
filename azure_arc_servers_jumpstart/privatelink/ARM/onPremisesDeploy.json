@@ -11,7 +11,7 @@
         },
         "vmSize": {
             "type": "string",
-            "defaultValue": "Standard_D4s_v4",
+            "defaultValue": "Standard_D4s_v7",
             "metadata": {
                 "description": "Size of the Azure Arc-enabled virtual machine."
             }
@@ -279,7 +279,7 @@
                     "imageReference": {
                         "publisher": "MicrosoftWindowsServer",
                         "offer": "WindowsServer",
-                        "sku": "2022-Datacenter",
+                        "sku": "2022-datacenter-g2",
                         "version": "latest"
                     },
                     "osDisk": {

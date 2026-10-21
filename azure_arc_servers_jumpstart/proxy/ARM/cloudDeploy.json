@@ -18,7 +18,7 @@
     },
       "vmSize": {
         "type": "string",
-        "defaultValue": "Standard_D4s_v3",
+        "defaultValue": "Standard_D4s_v7",
         "metadata": {
           "description": "The size of the VM"
         }
@@ -408,7 +408,7 @@
           "autoUpgradeMinorVersion": true,
           "protectedSettings": {
             "fileUris": [
-              "https://raw.githubusercontent.com/microsoft/azure_arc/main/azure_arc_servers_jumpstart/proxy/artifacts/proxy_setup.sh"
+              "https://raw.githubusercontent.com/SQLLord/arc_jumpstart_arcbox/master/azure_arc_servers_jumpstart/proxy/artifacts/proxy_setup.sh"
             ],
             "commandToExecute": "./proxy_setup.sh"
           }

@@ -133,7 +133,7 @@ function SetupSupermarketRepo {
 
     Write-Host "INFO: Creating GitHub workflows" -ForegroundColor Gray
     New-Item -ItemType Directory ".github/workflows" -Force
-    $githubApiUrl = "$gitHubAPIBaseUri/repos/$githubAccount/azure_arc/contents/azure_jumpstart_ag/artifacts/workflows?ref=$githubBranch"
+    $githubApiUrl = "$gitHubAPIBaseUri/repos/$githubAccount/arc_jumpstart_arcbox/contents/azure_jumpstart_ag/artifacts/workflows?ref=$githubBranch"
     $response = Invoke-RestMethod -Uri $githubApiUrl
     $fileUrls = $response | Where-Object { $_.type -eq "file" } | Select-Object -ExpandProperty download_url
     $fileUrls | ForEach-Object {

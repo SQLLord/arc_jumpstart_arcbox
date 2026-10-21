@@ -52,7 +52,7 @@
         },
         "vmSize": {
             "type": "string",
-            "defaultValue": "Standard_D8s_v3",
+            "defaultValue": "Standard_D8s_v7",
             "metadata": {
                 "description": "The size of the VM"
             }
@@ -291,7 +291,7 @@
                 "autoUpgradeMinorVersion": true,
                 "protectedSettings": {
                     "fileUris": [
-                        "https://raw.githubusercontent.com/microsoft/azure_arc/main/azure_arc_servers_jumpstart/azure/windows/arm_template/scripts/install_arc_agent.ps1"
+                        "https://raw.githubusercontent.com/SQLLord/arc_jumpstart_arcbox/master/azure_arc_servers_jumpstart/azure/windows/arm_template/scripts/install_arc_agent.ps1"
                     ],
                     "commandToExecute": "[concat('powershell.exe -ExecutionPolicy Bypass -File install_arc_agent.ps1', ' -appId ', parameters('appId'), ' -password ', parameters('password'), ' -tenantId ', parameters('tenantId'), ' -resourceGroup ', parameters('resourceGroup'),  ' -subscriptionId ', parameters('subscriptionId'), ' -location ', parameters('location'), ' -adminUsername ', parameters('adminUsername'))]"
                 }

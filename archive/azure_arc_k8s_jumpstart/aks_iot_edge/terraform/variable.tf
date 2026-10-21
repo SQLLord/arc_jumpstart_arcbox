@@ -188,8 +188,8 @@ variable "node_pool_count" {
 
 variable "node_pool_vm_size" {
   type        = string
-  description = "(Optional) VM Size to create in the default node pool. Default: Standard_DS3_v2"
-  default     = "Standard_DS3_v2"
+  description = "(Optional) VM Size to create in the default node pool. Default: Standard_D4s_v7"
+  default     = "Standard_D4s_v7"
 }
 
 variable "node_pool_os_disk_size_gb" {
@@ -377,7 +377,7 @@ variable "name-vm" {
 
 variable "sku-vm" {
   description = "(Required) Name of Virtual Machine"
-  default="Standard_DS1_v2"
+  default="Standard_D2s_v7"
 }
 
 variable "name-disk-vm" {
@@ -402,12 +402,12 @@ variable "image-publisher-vm" {
 
 variable "image-offer-vm" {
   description = "(Required) Image Publisher SO of Virtual Machine"
-  default="UbuntuServer"
+  default="0001-com-ubuntu-server-jammy"
 }
 
 variable "image-sku-vm" {
   description = "(Required) Image Publisher SO of Virtual Machine"
-  default="18.04-LTS"
+  default="22_04-lts-gen2"
 }
 
 variable "image-version-vm" {

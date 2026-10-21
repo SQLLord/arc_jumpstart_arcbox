@@ -45,10 +45,10 @@ param templateBaseUrl string
 param deployBastion bool = false
 
 @description('Target GitHub account')
-param githubAccount string = 'microsoft'
+param githubAccount string = 'SQLLord'
 
 @description('Target GitHub branch')
-param githubBranch string = 'main'
+param githubBranch string = 'master'
 
 @description('The AKS Edge Essentials schema version to be used. This is only used to pin the AKS Edge Essentials schema version for testing.')
 param AKSEEPinnedSchemaVersion string = 'useLatest'
@@ -102,7 +102,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2022-03-01' = {
   tags: resourceTags
   properties: {
     hardwareProfile: {
-      vmSize: 'Standard_E32s_v5'
+      vmSize: 'Standard_E32s_v7'
     }
     storageProfile: {
       osDisk: {

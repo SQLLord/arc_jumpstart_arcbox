@@ -143,7 +143,7 @@ configuration:
 
                   This issue does not appear to have been submitted using our GitHub Issue Forms, or the required labels ("Bug-Issue" or "Feature-Request") are missing. All issues must be submitted using our forms to ensure they are categorized correctly.
 
-                  This issue will now be closed. Please resubmit your issue or feature request [using the appropriate template](https://github.com/microsoft/azure_arc/issues/new/choose).
+                  This issue will now be closed. Please resubmit your issue or feature request [using the appropriate template](https://github.com/SQLLord/arc_jumpstart_arcbox/issues/new/choose).
 
                   Thank you for your collaboration!
           - addLabel:
@@ -176,7 +176,7 @@ configuration:
 
                   Thank you for reporting this issue. A team member will review and triage it soon. All issues and pull requests are evaluated by the Arc Jumpstart team to determine next steps.
 
-                  By submitting this issue request, you agree that your contributions will be licensed under the project's [MIT license](https://github.com/microsoft/azure_arc/blob/main/LICENSE-CODE) and you confirm that you've read and will abide by our [Code of Conduct](https://github.com/microsoft/azure_arc/blob/main/CODE_OF_CONDUCT.md).
+                  By submitting this issue request, you agree that your contributions will be licensed under the project's [MIT license](https://github.com/SQLLord/arc_jumpstart_arcbox/blob/master/LICENSE-CODE) and you confirm that you've read and will abide by our [Code of Conduct](https://github.com/SQLLord/arc_jumpstart_arcbox/blob/master/CODE_OF_CONDUCT.md).
 
                   Thank you for your collaboration!
 

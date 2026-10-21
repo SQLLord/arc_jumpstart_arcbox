@@ -47,19 +47,19 @@ variable "location" {
 variable "azure_vm_size" {
   type        = string
   description = "The size of the VM."
-  default     = "Standard_D4s_v4"
+  default     = "Standard_D4s_v7"
 }
 
 variable "github_account" {
   type        = string
   description = "Target GitHub account."
-  default     = "microsoft"
+  default     = "SQLLord"
 }
 
 variable "github_branch" {
   type        = string
   description = "Target GitHub branch."
-  default     = "main"
+  default     = "master"
 }
 
 variable "deploy_bastion" {

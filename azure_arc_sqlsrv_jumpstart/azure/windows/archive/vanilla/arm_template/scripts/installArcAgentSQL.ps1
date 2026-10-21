@@ -370,7 +370,7 @@ $nestedWindowsUsername = $Env:adminUsername
 $nestedWindowsPassword = $Env:adminPassword
 
 Write-Host "Create SQL Azure Assessment"
-Invoke-WebRequest "https://raw.githubusercontent.com/microsoft/azure_arc/main/azure_arc_sqlsrv_jumpstart/azure/arm_template/scripts/Microsoft.PowerShell.Oms.Assessments.zip" -OutFile "$Env:JumpstartTempDir\Microsoft.PowerShell.Oms.Assessments.zip"
+Invoke-WebRequest "https://raw.githubusercontent.com/SQLLord/arc_jumpstart_arcbox/master/azure_arc_sqlsrv_jumpstart/azure/arm_template/scripts/Microsoft.PowerShell.Oms.Assessments.zip" -OutFile "$Env:JumpstartTempDir\Microsoft.PowerShell.Oms.Assessments.zip"
 Expand-Archive "$Env:JumpstartTempDir\Microsoft.PowerShell.Oms.Assessments.zip" -DestinationPath 'C:\Program Files\Microsoft Monitoring Agent\Agent\PowerShell'
 $Env:PSModulePath = $Env:PSModulePath + ";C:\Program Files\Microsoft Monitoring Agent\Agent\PowerShell\Microsoft.PowerShell.Oms.Assessments\"
 Import-Module "C:\Program Files\Microsoft Monitoring Agent\Agent\PowerShell\Microsoft.PowerShell.Oms.Assessments\Microsoft.PowerShell.Oms.Assessments.dll"

@@ -18,10 +18,10 @@
             "value": false
         },
         "githubAccount": {
-          "value": "microsoft"
+          "value": "SQLLord"
         },
         "githubBranch": {
-          "value": "arcbox_3.0"
+          "value": "master"
         },
         "vmAutologon": {
             "value": true
