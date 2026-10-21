@@ -2828,43 +2828,6 @@
                 "workspace"
               ]
             },
-            "publicIpAddress": {
-              "condition": "[equals(parameters('deployBastion'), true())]",
-              "type": "Microsoft.Network/publicIPAddresses",
-              "apiVersion": "2024-05-01",
-              "name": "[variables('bastionPublicIpAddressName')]",
-              "location": "[parameters('location')]",
-              "properties": {
-                "publicIPAllocationMethod": "Static",
-                "publicIPAddressVersion": "IPv4",
-                "idleTimeoutInMinutes": 4
-              },
-              "sku": {
-                "name": "Standard"
-              },
-              "dependsOn": [
-                "policyDeployment"
-              ]
-            },
-            "bastionHost": {
-              "condition": "[equals(parameters('deployBastion'), true())]",
-              "type": "Microsoft.Network/bastionHosts",
-              "apiVersion": "2024-05-01",
-              "name": "[variables('bastionName')]",
-              "location": "[parameters('location')]",
-              "sku": {
-                "name": "[parameters('bastionSku')]"
-              },
-              "properties": {
-                "virtualNetwork": "[if(equals(parameters('bastionSku'), 'Developer'), createObject('id', resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))), null())]",
-                "ipConfigurations": "[if(not(equals(parameters('bastionSku'), 'Developer')), createArray(createObject('name', 'IpConf', 'properties', createObject('publicIPAddress', createObject('id', resourceId('Microsoft.Network/publicIPAddresses', variables('bastionPublicIpAddressName'))), 'subnet', createObject('id', variables('bastionSubnetRef'))))), null())]"
-              },
-              "dependsOn": [
-                "arcVirtualNetwork",
-                "policyDeployment",
-                "publicIpAddress"
-              ]
-            },
             "kv": {
               "existing": true,
               "type": "Microsoft.KeyVault/vaults",
@@ -6617,43 +6580,6 @@
                 "workspace"
               ]
             },
-            "publicIpAddress": {
-              "condition": "[equals(parameters('deployBastion'), true())]",
-              "type": "Microsoft.Network/publicIPAddresses",
-              "apiVersion": "2024-05-01",
-              "name": "[variables('bastionPublicIpAddressName')]",
-              "location": "[parameters('location')]",
-              "properties": {
-                "publicIPAllocationMethod": "Static",
-                "publicIPAddressVersion": "IPv4",
-                "idleTimeoutInMinutes": 4
-              },
-              "sku": {
-                "name": "Standard"
-              },
-              "dependsOn": [
-                "policyDeployment"
-              ]
-            },
-            "bastionHost": {
-              "condition": "[equals(parameters('deployBastion'), true())]",
-              "type": "Microsoft.Network/bastionHosts",
-              "apiVersion": "2024-05-01",
-              "name": "[variables('bastionName')]",
-              "location": "[parameters('location')]",
-              "sku": {
-                "name": "[parameters('bastionSku')]"
-              },
-              "properties": {
-                "virtualNetwork": "[if(equals(parameters('bastionSku'), 'Developer'), createObject('id', resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))), null())]",
-                "ipConfigurations": "[if(not(equals(parameters('bastionSku'), 'Developer')), createArray(createObject('name', 'IpConf', 'properties', createObject('publicIPAddress', createObject('id', resourceId('Microsoft.Network/publicIPAddresses', variables('bastionPublicIpAddressName'))), 'subnet', createObject('id', variables('bastionSubnetRef'))))), null())]"
-              },
-              "dependsOn": [
-                "arcVirtualNetwork",
-                "policyDeployment",
-                "publicIpAddress"
-              ]
-            },
             "kv": {
               "existing": true,
               "type": "Microsoft.KeyVault/vaults",
@@ -9789,6 +9715,121 @@
         "[resourceId('Microsoft.Resources/deployments', 'mgmtArtifactsAndPolicyDeployment')]",
         "[resourceId('Microsoft.Resources/deployments', 'stagingStorageAccountDeployment')]",
         "[resourceId('Microsoft.Resources/deployments', 'updateVNetDNSServers')]"
+      ]
+    },
+    {
+      "condition": "[parameters('deployBastion')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2024-11-01",
+      "name": "bastionDeployment",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "bastionSku": {
+            "value": "[parameters('bastionSku')]"
+          },
+          "vnetId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'mgmtArtifactsAndPolicyDeployment'), '2022-09-01').outputs.vnetId.value]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "namingPrefix": {
+            "value": "[parameters('namingPrefix')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.38.33.27573",
+              "templateHash": "12365370392776405634"
+            }
+          },
+          "parameters": {
+            "bastionSku": {
+              "type": "string",
+              "defaultValue": "Basic",
+              "allowedValues": [
+                "Basic",
+                "Standard",
+                "Developer"
+              ],
+              "metadata": {
+                "description": "Bastion host Sku name"
+              }
+            },
+            "vnetId": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource Id of the ArcBox virtual network"
+              }
+            },
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]",
+              "metadata": {
+                "description": "Azure Region to deploy the Bastion host"
+              }
+            },
+            "namingPrefix": {
+              "type": "string",
+              "defaultValue": "ArcBox",
+              "maxLength": 7,
+              "metadata": {
+                "description": "The naming prefix for the nested virtual machines and all Azure resources deployed. The maximum length for the naming prefix is 7 characters,example: `ArcBox-Win2k19`"
+              }
+            }
+          },
+          "variables": {
+            "bastionName": "[format('{0}-Bastion', parameters('namingPrefix'))]",
+            "bastionPublicIpAddressName": "[format('{0}-PIP', variables('bastionName'))]",
+            "bastionSubnetRef": "[format('{0}/subnets/AzureBastionSubnet', parameters('vnetId'))]"
+          },
+          "resources": [
+            {
+              "condition": "[not(equals(parameters('bastionSku'), 'Developer'))]",
+              "type": "Microsoft.Network/publicIPAddresses",
+              "apiVersion": "2024-05-01",
+              "name": "[variables('bastionPublicIpAddressName')]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "publicIPAllocationMethod": "Static",
+                "publicIPAddressVersion": "IPv4",
+                "idleTimeoutInMinutes": 4
+              },
+              "sku": {
+                "name": "Standard"
+              }
+            },
+            {
+              "type": "Microsoft.Network/bastionHosts",
+              "apiVersion": "2024-05-01",
+              "name": "[variables('bastionName')]",
+              "location": "[parameters('location')]",
+              "sku": {
+                "name": "[parameters('bastionSku')]"
+              },
+              "properties": {
+                "virtualNetwork": "[if(equals(parameters('bastionSku'), 'Developer'), createObject('id', parameters('vnetId')), null())]",
+                "ipConfigurations": "[if(not(equals(parameters('bastionSku'), 'Developer')), createArray(createObject('name', 'IpConf', 'properties', createObject('publicIPAddress', createObject('id', resourceId('Microsoft.Network/publicIPAddresses', variables('bastionPublicIpAddressName'))), 'subnet', createObject('id', variables('bastionSubnetRef'))))), null())]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', variables('bastionPublicIpAddressName'))]"
+              ]
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'aksDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments', 'clientVmDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments', 'mgmtArtifactsAndPolicyDeployment')]"
       ]
     }
   ],

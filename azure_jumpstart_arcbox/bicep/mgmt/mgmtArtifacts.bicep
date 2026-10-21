@@ -584,55 +584,6 @@ resource securityGallery 'Microsoft.OperationsManagement/solutions@2015-11-01-pr
   }
 }
 
-resource publicIpAddress 'Microsoft.Network/publicIPAddresses@2024-05-01' = if (deployBastion == true) {
-  name: bastionPublicIpAddressName
-  location: location
-  dependsOn: [
-    policyDeployment
-  ]
-  properties: {
-    publicIPAllocationMethod: 'Static'
-    publicIPAddressVersion: 'IPv4'
-    idleTimeoutInMinutes: 4
-  }
-  sku: {
-    name: 'Standard'
-  }
-}
-
-resource bastionHost 'Microsoft.Network/bastionHosts@2024-05-01' = if (deployBastion == true) {
-  name: bastionName
-  location: location
-  dependsOn: [
-    policyDeployment
-  ]
-  sku: {
-    name: bastionSku
-  }
-  properties: {
-    virtualNetwork: bastionSku == 'Developer'
-      ? {
-          id: arcVirtualNetwork.id
-        }
-      : null
-    ipConfigurations: bastionSku != 'Developer'
-      ? [
-          {
-            name: 'IpConf'
-            properties: {
-              publicIPAddress: {
-                id: publicIpAddress.id
-              }
-              subnet: {
-                id: bastionSubnetRef
-              }
-            }
-          }
-        ]
-      : null
-  }
-}
-
 module policyDeployment './policyAzureArc.bicep' = {
   name: 'policyDeployment'
   params: {

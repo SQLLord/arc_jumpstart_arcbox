@@ -311,6 +311,21 @@ module aksDeployment 'kubernetes/aks.bicep' = if (flavor == 'DataOps') {
   ]
 }
 
+// Bastion is deployed last: it is slow to provision and slow to delete, so a failed or cancelled test run is cheaper to clean up
+module bastionDeployment 'mgmt/bastion.bicep' = if (deployBastion) {
+  name: 'bastionDeployment'
+  params: {
+    bastionSku: bastionSku
+    vnetId: mgmtArtifactsAndPolicyDeployment.outputs.vnetId
+    location: location
+    namingPrefix: namingPrefix
+  }
+  dependsOn: [
+    clientVmDeployment
+    aksDeployment
+  ]
+}
+
 module customerUsageAttribution 'mgmt/customerUsageAttribution.bicep' = {
   name: 'pid-${customerUsageAttributionDeploymentName}'
   params: {
