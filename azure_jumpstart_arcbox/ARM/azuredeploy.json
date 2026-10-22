@@ -2781,6 +2781,19 @@
                       "destinationAddressPrefix": "*",
                       "destinationPortRange": "5022"
                     }
+                  },
+                  {
+                    "name": "allow_vnet_rdp_inbound",
+                    "properties": {
+                      "priority": 208,
+                      "protocol": "Tcp",
+                      "access": "Allow",
+                      "direction": "Inbound",
+                      "sourceAddressPrefix": "VirtualNetwork",
+                      "sourcePortRange": "*",
+                      "destinationAddressPrefix": "*",
+                      "destinationPortRange": "3389"
+                    }
                   }
                 ]
               },
@@ -6532,6 +6545,19 @@
                       "sourcePortRange": "*",
                       "destinationAddressPrefix": "*",
                       "destinationPortRange": "5022"
+                    }
+                  },
+                  {
+                    "name": "allow_vnet_rdp_inbound",
+                    "properties": {
+                      "priority": 208,
+                      "protocol": "Tcp",
+                      "access": "Allow",
+                      "direction": "Inbound",
+                      "sourceAddressPrefix": "VirtualNetwork",
+                      "sourcePortRange": "*",
+                      "destinationAddressPrefix": "*",
+                      "destinationPortRange": "3389"
                     }
                   }
                 ]

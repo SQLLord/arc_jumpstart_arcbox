@@ -427,6 +427,21 @@ resource networkSecurityGroup 'Microsoft.Network/networkSecurityGroups@2024-05-0
           destinationPortRange: '5022'
         }
       }
+      {
+        // Allow RDP from inside the VNet so Azure Bastion can reach the client VM.
+        // Placed ahead of the Defender for Cloud JIT deny rule (priority 4096), which otherwise blocks Bastion.
+        name: 'allow_vnet_rdp_inbound'
+        properties: {
+          priority: 208
+          protocol: 'Tcp'
+          access: 'Allow'
+          direction: 'Inbound'
+          sourceAddressPrefix: 'VirtualNetwork'
+          sourcePortRange: '*'
+          destinationAddressPrefix: '*'
+          destinationPortRange: '3389'
+        }
+      }
     ]
   }
 }
