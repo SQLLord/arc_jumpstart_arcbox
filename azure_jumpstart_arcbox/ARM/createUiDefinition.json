@@ -1,0 +1,590 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/0.1.2-preview/CreateUIDefinition.MultiVm.json#",
+  "handler": "Microsoft.Azure.CreateUIDef",
+  "version": "0.1.2-preview",
+  "parameters": {
+    "config": {
+      "isWizard": false,
+      "basics": {
+        "description": "Deploys Arc Jumpstart ArcBox. Pick the flavor here; the client VM size, networking and source settings are on the following tabs."
+      }
+    },
+    "basics": [
+      {
+        "name": "flavor",
+        "type": "Microsoft.Common.DropDown",
+        "label": "ArcBox flavor",
+        "defaultValue": "ITPro",
+        "toolTip": "Which ArcBox scenario to deploy.",
+        "constraints": {
+          "allowedValues": [
+            {
+              "label": "ITPro",
+              "value": "ITPro"
+            },
+            {
+              "label": "DevOps",
+              "value": "DevOps"
+            },
+            {
+              "label": "DataOps",
+              "value": "DataOps"
+            }
+          ],
+          "required": true
+        }
+      },
+      {
+        "name": "sqlServerEdition",
+        "type": "Microsoft.Common.DropDown",
+        "label": "SQL Server edition",
+        "defaultValue": "Developer",
+        "toolTip": "Edition of SQL Server on the nested SQL VM.",
+        "constraints": {
+          "allowedValues": [
+            {
+              "label": "Developer",
+              "value": "Developer"
+            },
+            {
+              "label": "Standard",
+              "value": "Standard"
+            },
+            {
+              "label": "Enterprise",
+              "value": "Enterprise"
+            }
+          ],
+          "required": true
+        }
+      },
+      {
+        "name": "namingPrefix",
+        "type": "Microsoft.Common.TextBox",
+        "label": "Naming prefix",
+        "defaultValue": "ArcBox",
+        "toolTip": "Prefix for all resources and nested VMs (max 7 characters).",
+        "constraints": {
+          "required": true,
+          "regex": "^[A-Za-z][A-Za-z0-9]{0,6}$",
+          "validationMessage": "1-7 letters or numbers, starting with a letter."
+        }
+      },
+      {
+        "name": "logAnalyticsWorkspaceName",
+        "type": "Microsoft.Common.TextBox",
+        "label": "Log Analytics workspace name",
+        "defaultValue": "ArcBox-la",
+        "constraints": {
+          "required": true,
+          "regex": "^[A-Za-z0-9][A-Za-z0-9-]{2,61}[A-Za-z0-9]$",
+          "validationMessage": "4-63 letters, numbers or hyphens."
+        }
+      },
+      {
+        "name": "windowsAdminUsername",
+        "type": "Microsoft.Compute.UserNameTextBox",
+        "label": "Windows admin username",
+        "defaultValue": "arcdemo",
+        "osPlatform": "Windows",
+        "toolTip": "Admin account for the client VM.",
+        "constraints": {
+          "required": true
+        }
+      },
+      {
+        "name": "windowsAdminPassword",
+        "type": "Microsoft.Common.PasswordBox",
+        "label": {
+          "password": "Windows admin password",
+          "confirmPassword": "Confirm password"
+        },
+        "toolTip": "12-123 characters with upper case, lower case, a number and a special character.",
+        "constraints": {
+          "required": true,
+          "regex": "^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{12,123}$",
+          "validationMessage": "12-123 characters with upper case, lower case, a number and a special character."
+        },
+        "options": {
+          "hideConfirmation": false
+        }
+      },
+      {
+        "name": "sshRSAPublicKey",
+        "type": "Microsoft.Common.TextBox",
+        "label": "SSH RSA public key",
+        "multiLine": true,
+        "toolTip": "Required for the DevOps and DataOps flavors (K3s/AKS Linux nodes).",
+        "visible": "[not(equals(basics('flavor'), 'ITPro'))]",
+        "constraints": {
+          "required": "[not(equals(basics('flavor'), 'ITPro'))]"
+        }
+      }
+    ],
+    "steps": [
+      {
+        "name": "vm",
+        "label": "Client VM",
+        "elements": [
+          {
+            "name": "clientVmSize",
+            "type": "Microsoft.Compute.SizeSelector",
+            "label": "Client VM size",
+            "toolTip": "Size of the ArcBox client VM that hosts the nested VMs. Limited to v5 or newer D/E-series x64 sizes with 8+ vCPUs and 32+ GB of memory.",
+            "recommendedSizes": [
+              "Standard_D8s_v7",
+              "Standard_D16s_v7",
+              "Standard_E8s_v7",
+              "Standard_D8ds_v6",
+              "Standard_D8s_v6"
+            ],
+            "constraints": {
+              "allowedSizes": [
+                "Standard_D8_v5",
+                "Standard_D16_v5",
+                "Standard_D32_v5",
+                "Standard_D48_v5",
+                "Standard_D64_v5",
+                "Standard_D8ads_v5",
+                "Standard_D16ads_v5",
+                "Standard_D32ads_v5",
+                "Standard_D48ads_v5",
+                "Standard_D64ads_v5",
+                "Standard_D8as_v5",
+                "Standard_D16as_v5",
+                "Standard_D32as_v5",
+                "Standard_D48as_v5",
+                "Standard_D64as_v5",
+                "Standard_D8d_v5",
+                "Standard_D16d_v5",
+                "Standard_D32d_v5",
+                "Standard_D48d_v5",
+                "Standard_D64d_v5",
+                "Standard_D8ds_v5",
+                "Standard_D16ds_v5",
+                "Standard_D32ds_v5",
+                "Standard_D48ds_v5",
+                "Standard_D64ds_v5",
+                "Standard_D16lds_v5",
+                "Standard_D32lds_v5",
+                "Standard_D48lds_v5",
+                "Standard_D64lds_v5",
+                "Standard_D16ls_v5",
+                "Standard_D32ls_v5",
+                "Standard_D48ls_v5",
+                "Standard_D64ls_v5",
+                "Standard_D8s_v5",
+                "Standard_D16s_v5",
+                "Standard_D32s_v5",
+                "Standard_D48s_v5",
+                "Standard_D64s_v5",
+                "Standard_E8_v5",
+                "Standard_E16_v5",
+                "Standard_E20_v5",
+                "Standard_E32_v5",
+                "Standard_E48_v5",
+                "Standard_E64_v5",
+                "Standard_E8ads_v5",
+                "Standard_E16ads_v5",
+                "Standard_E20ads_v5",
+                "Standard_E32ads_v5",
+                "Standard_E48ads_v5",
+                "Standard_E64ads_v5",
+                "Standard_E8as_v5",
+                "Standard_E16as_v5",
+                "Standard_E20as_v5",
+                "Standard_E32as_v5",
+                "Standard_E48as_v5",
+                "Standard_E64as_v5",
+                "Standard_E8bds_v5",
+                "Standard_E16bds_v5",
+                "Standard_E32bds_v5",
+                "Standard_E48bds_v5",
+                "Standard_E64bds_v5",
+                "Standard_E8bs_v5",
+                "Standard_E16bs_v5",
+                "Standard_E32bs_v5",
+                "Standard_E48bs_v5",
+                "Standard_E64bs_v5",
+                "Standard_E8d_v5",
+                "Standard_E16d_v5",
+                "Standard_E20d_v5",
+                "Standard_E32d_v5",
+                "Standard_E48d_v5",
+                "Standard_E64d_v5",
+                "Standard_E8ds_v5",
+                "Standard_E16ds_v5",
+                "Standard_E20ds_v5",
+                "Standard_E32ds_v5",
+                "Standard_E48ds_v5",
+                "Standard_E64ds_v5",
+                "Standard_E8s_v5",
+                "Standard_E16s_v5",
+                "Standard_E20s_v5",
+                "Standard_E32s_v5",
+                "Standard_E48s_v5",
+                "Standard_E64s_v5",
+                "Standard_D8ads_v6",
+                "Standard_D16ads_v6",
+                "Standard_D32ads_v6",
+                "Standard_D48ads_v6",
+                "Standard_D64ads_v6",
+                "Standard_D16alds_v6",
+                "Standard_D32alds_v6",
+                "Standard_D48alds_v6",
+                "Standard_D64alds_v6",
+                "Standard_D16als_v6",
+                "Standard_D32als_v6",
+                "Standard_D48als_v6",
+                "Standard_D64als_v6",
+                "Standard_D8as_v6",
+                "Standard_D16as_v6",
+                "Standard_D32as_v6",
+                "Standard_D48as_v6",
+                "Standard_D64as_v6",
+                "Standard_D8ds_v6",
+                "Standard_D16ds_v6",
+                "Standard_D32ds_v6",
+                "Standard_D48ds_v6",
+                "Standard_D64ds_v6",
+                "Standard_D16lds_v6",
+                "Standard_D32lds_v6",
+                "Standard_D48lds_v6",
+                "Standard_D64lds_v6",
+                "Standard_D16ls_v6",
+                "Standard_D32ls_v6",
+                "Standard_D48ls_v6",
+                "Standard_D64ls_v6",
+                "Standard_D8s_v6",
+                "Standard_D16s_v6",
+                "Standard_D32s_v6",
+                "Standard_D48s_v6",
+                "Standard_D64s_v6",
+                "Standard_E8ads_v6",
+                "Standard_E16ads_v6",
+                "Standard_E20ads_v6",
+                "Standard_E32ads_v6",
+                "Standard_E48ads_v6",
+                "Standard_E64ads_v6",
+                "Standard_E8as_v6",
+                "Standard_E16as_v6",
+                "Standard_E20as_v6",
+                "Standard_E32as_v6",
+                "Standard_E48as_v6",
+                "Standard_E64as_v6",
+                "Standard_E8ds_v6",
+                "Standard_E16ds_v6",
+                "Standard_E20ds_v6",
+                "Standard_E32ds_v6",
+                "Standard_E48ds_v6",
+                "Standard_E64ds_v6",
+                "Standard_E8s_v6",
+                "Standard_E16s_v6",
+                "Standard_E20s_v6",
+                "Standard_E32s_v6",
+                "Standard_E48s_v6",
+                "Standard_E64s_v6",
+                "Standard_D8ads_v7",
+                "Standard_D16ads_v7",
+                "Standard_D32ads_v7",
+                "Standard_D48ads_v7",
+                "Standard_D64ads_v7",
+                "Standard_D16alds_v7",
+                "Standard_D32alds_v7",
+                "Standard_D48alds_v7",
+                "Standard_D64alds_v7",
+                "Standard_D16als_v7",
+                "Standard_D32als_v7",
+                "Standard_D48als_v7",
+                "Standard_D64als_v7",
+                "Standard_D8as_v7",
+                "Standard_D16as_v7",
+                "Standard_D32as_v7",
+                "Standard_D48as_v7",
+                "Standard_D64as_v7",
+                "Standard_D8ds_v7",
+                "Standard_D16ds_v7",
+                "Standard_D32ds_v7",
+                "Standard_D48ds_v7",
+                "Standard_D64ds_v7",
+                "Standard_D16lds_v7",
+                "Standard_D32lds_v7",
+                "Standard_D48lds_v7",
+                "Standard_D64lds_v7",
+                "Standard_D16ls_v7",
+                "Standard_D32ls_v7",
+                "Standard_D48ls_v7",
+                "Standard_D64ls_v7",
+                "Standard_D8s_v7",
+                "Standard_D16s_v7",
+                "Standard_D32s_v7",
+                "Standard_D48s_v7",
+                "Standard_D64s_v7",
+                "Standard_E8ads_v7",
+                "Standard_E16ads_v7",
+                "Standard_E32ads_v7",
+                "Standard_E48ads_v7",
+                "Standard_E64ads_v7",
+                "Standard_E8as_v7",
+                "Standard_E16as_v7",
+                "Standard_E32as_v7",
+                "Standard_E48as_v7",
+                "Standard_E64as_v7",
+                "Standard_E8ds_v7",
+                "Standard_E16ds_v7",
+                "Standard_E20ds_v7",
+                "Standard_E32ds_v7",
+                "Standard_E48ds_v7",
+                "Standard_E64ds_v7",
+                "Standard_E8s_v7",
+                "Standard_E16s_v7",
+                "Standard_E20s_v7",
+                "Standard_E32s_v7",
+                "Standard_E48s_v7",
+                "Standard_E64s_v7"
+              ]
+            },
+            "osPlatform": "Windows",
+            "imageReference": {
+              "publisher": "MicrosoftWindowsServer",
+              "offer": "WindowsServer",
+              "sku": "2025-datacenter-g2"
+            },
+            "count": 1
+          },
+          {
+            "name": "zones",
+            "type": "Microsoft.Common.DropDown",
+            "label": "Availability zone",
+            "defaultValue": "1",
+            "constraints": {
+              "allowedValues": [
+                {
+                  "label": "1",
+                  "value": "1"
+                },
+                {
+                  "label": "2",
+                  "value": "2"
+                },
+                {
+                  "label": "3",
+                  "value": "3"
+                }
+              ],
+              "required": true
+            }
+          },
+          {
+            "name": "enableAzureSpotPricing",
+            "type": "Microsoft.Common.CheckBox",
+            "label": "Use Azure Spot pricing for the client VM"
+          },
+          {
+            "name": "vmAutologon",
+            "type": "Microsoft.Common.CheckBox",
+            "defaultValue": true,
+            "label": "Enable autologon (runs the setup scripts automatically after reboot)"
+          },
+          {
+            "name": "autoShutdownEnabled",
+            "type": "Microsoft.Common.CheckBox",
+            "label": "Enable daily auto-shutdown",
+            "defaultValue": true
+          },
+          {
+            "name": "autoShutdownTime",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Auto-shutdown time (HHmm)",
+            "defaultValue": "1800",
+            "visible": "[steps('vm').autoShutdownEnabled]",
+            "constraints": {
+              "required": true,
+              "regex": "^([01][0-9]|2[0-3])[0-5][0-9]$",
+              "validationMessage": "24-hour time as HHmm, for example 1800."
+            }
+          },
+          {
+            "name": "autoShutdownTimezone",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Auto-shutdown time zone",
+            "defaultValue": "UTC",
+            "visible": "[steps('vm').autoShutdownEnabled]",
+            "toolTip": "Windows time zone ID, for example \"UTC\" or \"Pacific Standard Time\".",
+            "constraints": {
+              "required": true
+            }
+          },
+          {
+            "name": "autoShutdownEmailRecipient",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Auto-shutdown notification email (optional)",
+            "visible": "[steps('vm').autoShutdownEnabled]",
+            "constraints": {
+              "required": false
+            }
+          }
+        ]
+      },
+      {
+        "name": "network",
+        "label": "Networking",
+        "elements": [
+          {
+            "name": "deployNatGateway",
+            "type": "Microsoft.Common.CheckBox",
+            "label": "Deploy a NAT Gateway for outbound internet access",
+            "toolTip": "Required where policy blocks default outbound access. Always deployed with Bastion or the DevOps/DataOps flavors."
+          },
+          {
+            "name": "deployBastion",
+            "type": "Microsoft.Common.CheckBox",
+            "label": "Deploy Azure Bastion (client VM gets no public IP)"
+          },
+          {
+            "name": "bastionSku",
+            "type": "Microsoft.Common.DropDown",
+            "label": "Bastion SKU",
+            "defaultValue": "Basic",
+            "visible": "[steps('network').deployBastion]",
+            "constraints": {
+              "allowedValues": [
+                {
+                  "label": "Basic",
+                  "value": "Basic"
+                },
+                {
+                  "label": "Standard",
+                  "value": "Standard"
+                },
+                {
+                  "label": "Developer",
+                  "value": "Developer"
+                }
+              ],
+              "required": true
+            }
+          },
+          {
+            "name": "rdpPort",
+            "type": "Microsoft.Common.TextBox",
+            "label": "RDP port",
+            "defaultValue": "3389",
+            "constraints": {
+              "required": true,
+              "regex": "^[0-9]{2,5}$",
+              "validationMessage": "A port number."
+            }
+          }
+        ]
+      },
+      {
+        "name": "advanced",
+        "label": "Advanced",
+        "elements": [
+          {
+            "name": "githubAccount",
+            "type": "Microsoft.Common.TextBox",
+            "label": "GitHub account hosting arc_jumpstart_arcbox",
+            "defaultValue": "SQLLord",
+            "constraints": {
+              "required": true
+            }
+          },
+          {
+            "name": "githubBranch",
+            "type": "Microsoft.Common.TextBox",
+            "label": "GitHub branch",
+            "defaultValue": "master",
+            "constraints": {
+              "required": true
+            }
+          },
+          {
+            "name": "githubUser",
+            "type": "Microsoft.Common.TextBox",
+            "label": "GitHub account hosting jumpstart-apps (DevOps only)",
+            "defaultValue": "Azure",
+            "constraints": {
+              "required": true
+            }
+          },
+          {
+            "name": "vhdStorageAccountName",
+            "type": "Microsoft.Common.TextBox",
+            "label": "VHD storage account (empty = public Jumpstart storage)",
+            "defaultValue": "arcboxfilesdonotdelete",
+            "constraints": {
+              "required": false
+            }
+          },
+          {
+            "name": "vhdStorageAccountResourceGroup",
+            "type": "Microsoft.Common.TextBox",
+            "label": "VHD storage account resource group",
+            "defaultValue": "Arcbox",
+            "visible": "[not(empty(steps('advanced').vhdStorageAccountName))]",
+            "constraints": {
+              "required": true
+            }
+          },
+          {
+            "name": "vhdContainerName",
+            "type": "Microsoft.Common.TextBox",
+            "label": "VHD container",
+            "defaultValue": "arcboxvhds",
+            "visible": "[not(empty(steps('advanced').vhdStorageAccountName))]",
+            "constraints": {
+              "required": true
+            }
+          },
+          {
+            "name": "keyVaultName",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Key Vault name (empty = auto-generated)",
+            "constraints": {
+              "required": false,
+              "regex": "^$|^[A-Za-z][A-Za-z0-9-]{1,22}[A-Za-z0-9]$",
+              "validationMessage": "3-24 letters, numbers or hyphens, starting with a letter."
+            }
+          },
+          {
+            "name": "debugEnabled",
+            "type": "Microsoft.Common.CheckBox",
+            "label": "Debug mode for the automation scripts"
+          }
+        ]
+      }
+    ],
+    "outputs": {
+      "location": "[location()]",
+      "flavor": "[basics('flavor')]",
+      "sqlServerEdition": "[basics('sqlServerEdition')]",
+      "namingPrefix": "[basics('namingPrefix')]",
+      "logAnalyticsWorkspaceName": "[basics('logAnalyticsWorkspaceName')]",
+      "windowsAdminUsername": "[basics('windowsAdminUsername')]",
+      "windowsAdminPassword": "[basics('windowsAdminPassword')]",
+      "sshRSAPublicKey": "[basics('sshRSAPublicKey')]",
+      "clientVmSize": "[steps('vm').clientVmSize]",
+      "zones": "[steps('vm').zones]",
+      "enableAzureSpotPricing": "[steps('vm').enableAzureSpotPricing]",
+      "vmAutologon": "[steps('vm').vmAutologon]",
+      "autoShutdownEnabled": "[steps('vm').autoShutdownEnabled]",
+      "autoShutdownTime": "[steps('vm').autoShutdownTime]",
+      "autoShutdownTimezone": "[steps('vm').autoShutdownTimezone]",
+      "autoShutdownEmailRecipient": "[steps('vm').autoShutdownEmailRecipient]",
+      "deployNatGateway": "[steps('network').deployNatGateway]",
+      "deployBastion": "[steps('network').deployBastion]",
+      "bastionSku": "[steps('network').bastionSku]",
+      "rdpPort": "[steps('network').rdpPort]",
+      "githubAccount": "[steps('advanced').githubAccount]",
+      "githubBranch": "[steps('advanced').githubBranch]",
+      "githubUser": "[steps('advanced').githubUser]",
+      "vhdStorageAccountName": "[steps('advanced').vhdStorageAccountName]",
+      "vhdStorageAccountResourceGroup": "[steps('advanced').vhdStorageAccountResourceGroup]",
+      "vhdContainerName": "[steps('advanced').vhdContainerName]",
+      "keyVaultName": "[steps('advanced').keyVaultName]",
+      "debugEnabled": "[steps('advanced').debugEnabled]"
+    }
+  }
+}

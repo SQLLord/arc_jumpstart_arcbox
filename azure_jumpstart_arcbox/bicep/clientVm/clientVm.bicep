@@ -135,6 +135,9 @@ param enableAzureSpotPricing bool = false
 @description('Name of the Key Vault holding the ArcBox secrets')
 param keyVaultName string
 
+@description('Optional. Size of the ArcBox client VM. Leave empty for the flavor default (Standard_D4s_v7 for DevOps, Standard_D8s_v7 otherwise).')
+param clientVmSize string = ''
+
 @description('Optional. Storage account holding the nested VM VHD images. Leave empty to download them anonymously from the public Jumpstart storage account.')
 param vhdStorageAccountName string = ''
 
@@ -217,7 +220,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-07-01' = {
   }
   properties: {
     hardwareProfile: {
-      vmSize: flavor == 'DevOps' ? 'Standard_D4s_v7' : flavor == 'DataOps' ? 'Standard_D8s_v7' : 'Standard_D8s_v7'
+      vmSize: !empty(clientVmSize) ? clientVmSize : flavor == 'DevOps' ? 'Standard_D4s_v7' : 'Standard_D8s_v7'
     }
     storageProfile: {
       osDisk: {

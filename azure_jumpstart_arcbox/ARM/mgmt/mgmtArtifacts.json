@@ -102,6 +102,27 @@
         "description": "Bastion host Sku name"
       }
     },
+    "deployNatGateway": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Deploy a NAT Gateway for outbound internet access (required where policy blocks default outbound access). Always deployed with Bastion or the DevOps/DataOps flavors."
+      }
+    },
+    "natGatewayName": {
+      "type": "string",
+      "defaultValue": "[format('{0}-NatGateway', parameters('namingPrefix'))]",
+      "metadata": {
+        "description": "Name of the NAT Gateway"
+      }
+    },
+    "drNatGatewayName": {
+      "type": "string",
+      "defaultValue": "[format('{0}-DR-NatGateway', parameters('namingPrefix'))]",
+      "metadata": {
+        "description": "Name of the DR network NAT Gateway"
+      }
+    },
     "networkSecurityGroupName": {
       "type": "string",
       "defaultValue": "[format('{0}-NSG', parameters('namingPrefix'))]",
@@ -174,6 +195,7 @@
     "dcSubnetPrefix": "10.16.2.0/24",
     "drAddressPrefix": "172.16.0.0/16",
     "drSubnetPrefix": "172.16.128.0/17",
+    "deployNat": "[or(or(parameters('deployNatGateway'), parameters('deployBastion')), not(equals(parameters('flavor'), 'ITPro')))]",
     "bastionSubnetName": "AzureBastionSubnet",
     "bastionSubnetRef": "[format('{0}/subnets/{1}', resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName')), variables('bastionSubnetName'))]",
     "bastionName": "[format('{0}-Bastion', parameters('namingPrefix'))]",
@@ -188,7 +210,9 @@
           "privateLinkServiceNetworkPolicies": "Enabled",
           "networkSecurityGroup": {
             "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('networkSecurityGroupName'))]"
-          }
+          },
+          "natGateway": "[if(variables('deployNat'), createObject('id', resourceId('Microsoft.Network/natGateways', parameters('natGatewayName'))), null())]",
+          "defaultOutboundAccess": false
         }
       }
     ],
@@ -202,7 +226,9 @@
           "privateLinkServiceNetworkPolicies": "Enabled",
           "networkSecurityGroup": {
             "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('networkSecurityGroupName'))]"
-          }
+          },
+          "natGateway": "[if(variables('deployNat'), createObject('id', resourceId('Microsoft.Network/natGateways', parameters('natGatewayName'))), null())]",
+          "defaultOutboundAccess": false
         }
       },
       {
@@ -213,7 +239,9 @@
           "privateLinkServiceNetworkPolicies": "Enabled",
           "networkSecurityGroup": {
             "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('networkSecurityGroupName'))]"
-          }
+          },
+          "natGateway": "[if(variables('deployNat'), createObject('id', resourceId('Microsoft.Network/natGateways', parameters('natGatewayName'))), null())]",
+          "defaultOutboundAccess": false
         }
       }
     ]
@@ -237,6 +265,7 @@
       },
       "dependsOn": [
         "bastionNetworkSecurityGroup",
+        "natGateway",
         "networkSecurityGroup",
         "policyDeployment"
       ]
@@ -263,14 +292,89 @@
               "addressPrefix": "[variables('drSubnetPrefix')]",
               "networkSecurityGroup": {
                 "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('networkSecurityGroupName'))]"
-              }
+              },
+              "natGateway": "[if(equals(parameters('flavor'), 'DataOps'), createObject('id', resourceId('Microsoft.Network/natGateways', parameters('drNatGatewayName'))), null())]",
+              "defaultOutboundAccess": false
             }
           }
         ]
       },
       "dependsOn": [
+        "natGatewayDR",
         "networkSecurityGroup",
         "policyDeployment"
+      ]
+    },
+    "natGatewayPublicIp": {
+      "condition": "[variables('deployNat')]",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "apiVersion": "2024-07-01",
+      "name": "[format('{0}-PIP', parameters('natGatewayName'))]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "publicIPAllocationMethod": "Static",
+        "publicIPAddressVersion": "IPv4",
+        "idleTimeoutInMinutes": 4
+      },
+      "sku": {
+        "name": "Standard"
+      }
+    },
+    "natGatewayDRPublicIp": {
+      "condition": "[equals(parameters('flavor'), 'DataOps')]",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "apiVersion": "2024-07-01",
+      "name": "[format('{0}-DR-PIP', parameters('natGatewayName'))]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "publicIPAllocationMethod": "Static",
+        "publicIPAddressVersion": "IPv4",
+        "idleTimeoutInMinutes": 4
+      },
+      "sku": {
+        "name": "Standard"
+      }
+    },
+    "natGateway": {
+      "condition": "[variables('deployNat')]",
+      "type": "Microsoft.Network/natGateways",
+      "apiVersion": "2024-07-01",
+      "name": "[parameters('natGatewayName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Standard"
+      },
+      "properties": {
+        "publicIpAddresses": [
+          {
+            "id": "[resourceId('Microsoft.Network/publicIPAddresses', format('{0}-PIP', parameters('natGatewayName')))]"
+          }
+        ],
+        "idleTimeoutInMinutes": 4
+      },
+      "dependsOn": [
+        "natGatewayPublicIp"
+      ]
+    },
+    "natGatewayDR": {
+      "condition": "[equals(parameters('flavor'), 'DataOps')]",
+      "type": "Microsoft.Network/natGateways",
+      "apiVersion": "2024-07-01",
+      "name": "[parameters('drNatGatewayName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Standard"
+      },
+      "properties": {
+        "publicIpAddresses": [
+          {
+            "id": "[resourceId('Microsoft.Network/publicIPAddresses', format('{0}-DR-PIP', parameters('natGatewayName')))]"
+          }
+        ],
+        "idleTimeoutInMinutes": 4
+      },
+      "dependsOn": [
+        "natGatewayDRPublicIp"
       ]
     },
     "virtualNetworkName_peering_to_DR_vnet": {

@@ -183,6 +183,225 @@
         "description": "Optional. Globally unique name for the Key Vault (3-24 alphanumerics/hyphens). Leave empty to auto-generate a unique name from the naming prefix, resource group and deployment time."
       }
     },
+    "clientVmSize": {
+      "type": "string",
+      "defaultValue": "",
+      "allowedValues": [
+        "",
+        "Standard_D8_v5",
+        "Standard_D16_v5",
+        "Standard_D32_v5",
+        "Standard_D48_v5",
+        "Standard_D64_v5",
+        "Standard_D8ads_v5",
+        "Standard_D16ads_v5",
+        "Standard_D32ads_v5",
+        "Standard_D48ads_v5",
+        "Standard_D64ads_v5",
+        "Standard_D8as_v5",
+        "Standard_D16as_v5",
+        "Standard_D32as_v5",
+        "Standard_D48as_v5",
+        "Standard_D64as_v5",
+        "Standard_D8d_v5",
+        "Standard_D16d_v5",
+        "Standard_D32d_v5",
+        "Standard_D48d_v5",
+        "Standard_D64d_v5",
+        "Standard_D8ds_v5",
+        "Standard_D16ds_v5",
+        "Standard_D32ds_v5",
+        "Standard_D48ds_v5",
+        "Standard_D64ds_v5",
+        "Standard_D16lds_v5",
+        "Standard_D32lds_v5",
+        "Standard_D48lds_v5",
+        "Standard_D64lds_v5",
+        "Standard_D16ls_v5",
+        "Standard_D32ls_v5",
+        "Standard_D48ls_v5",
+        "Standard_D64ls_v5",
+        "Standard_D8s_v5",
+        "Standard_D16s_v5",
+        "Standard_D32s_v5",
+        "Standard_D48s_v5",
+        "Standard_D64s_v5",
+        "Standard_E8_v5",
+        "Standard_E16_v5",
+        "Standard_E20_v5",
+        "Standard_E32_v5",
+        "Standard_E48_v5",
+        "Standard_E64_v5",
+        "Standard_E8ads_v5",
+        "Standard_E16ads_v5",
+        "Standard_E20ads_v5",
+        "Standard_E32ads_v5",
+        "Standard_E48ads_v5",
+        "Standard_E64ads_v5",
+        "Standard_E8as_v5",
+        "Standard_E16as_v5",
+        "Standard_E20as_v5",
+        "Standard_E32as_v5",
+        "Standard_E48as_v5",
+        "Standard_E64as_v5",
+        "Standard_E8bds_v5",
+        "Standard_E16bds_v5",
+        "Standard_E32bds_v5",
+        "Standard_E48bds_v5",
+        "Standard_E64bds_v5",
+        "Standard_E8bs_v5",
+        "Standard_E16bs_v5",
+        "Standard_E32bs_v5",
+        "Standard_E48bs_v5",
+        "Standard_E64bs_v5",
+        "Standard_E8d_v5",
+        "Standard_E16d_v5",
+        "Standard_E20d_v5",
+        "Standard_E32d_v5",
+        "Standard_E48d_v5",
+        "Standard_E64d_v5",
+        "Standard_E8ds_v5",
+        "Standard_E16ds_v5",
+        "Standard_E20ds_v5",
+        "Standard_E32ds_v5",
+        "Standard_E48ds_v5",
+        "Standard_E64ds_v5",
+        "Standard_E8s_v5",
+        "Standard_E16s_v5",
+        "Standard_E20s_v5",
+        "Standard_E32s_v5",
+        "Standard_E48s_v5",
+        "Standard_E64s_v5",
+        "Standard_D8ads_v6",
+        "Standard_D16ads_v6",
+        "Standard_D32ads_v6",
+        "Standard_D48ads_v6",
+        "Standard_D64ads_v6",
+        "Standard_D16alds_v6",
+        "Standard_D32alds_v6",
+        "Standard_D48alds_v6",
+        "Standard_D64alds_v6",
+        "Standard_D16als_v6",
+        "Standard_D32als_v6",
+        "Standard_D48als_v6",
+        "Standard_D64als_v6",
+        "Standard_D8as_v6",
+        "Standard_D16as_v6",
+        "Standard_D32as_v6",
+        "Standard_D48as_v6",
+        "Standard_D64as_v6",
+        "Standard_D8ds_v6",
+        "Standard_D16ds_v6",
+        "Standard_D32ds_v6",
+        "Standard_D48ds_v6",
+        "Standard_D64ds_v6",
+        "Standard_D16lds_v6",
+        "Standard_D32lds_v6",
+        "Standard_D48lds_v6",
+        "Standard_D64lds_v6",
+        "Standard_D16ls_v6",
+        "Standard_D32ls_v6",
+        "Standard_D48ls_v6",
+        "Standard_D64ls_v6",
+        "Standard_D8s_v6",
+        "Standard_D16s_v6",
+        "Standard_D32s_v6",
+        "Standard_D48s_v6",
+        "Standard_D64s_v6",
+        "Standard_E8ads_v6",
+        "Standard_E16ads_v6",
+        "Standard_E20ads_v6",
+        "Standard_E32ads_v6",
+        "Standard_E48ads_v6",
+        "Standard_E64ads_v6",
+        "Standard_E8as_v6",
+        "Standard_E16as_v6",
+        "Standard_E20as_v6",
+        "Standard_E32as_v6",
+        "Standard_E48as_v6",
+        "Standard_E64as_v6",
+        "Standard_E8ds_v6",
+        "Standard_E16ds_v6",
+        "Standard_E20ds_v6",
+        "Standard_E32ds_v6",
+        "Standard_E48ds_v6",
+        "Standard_E64ds_v6",
+        "Standard_E8s_v6",
+        "Standard_E16s_v6",
+        "Standard_E20s_v6",
+        "Standard_E32s_v6",
+        "Standard_E48s_v6",
+        "Standard_E64s_v6",
+        "Standard_D8ads_v7",
+        "Standard_D16ads_v7",
+        "Standard_D32ads_v7",
+        "Standard_D48ads_v7",
+        "Standard_D64ads_v7",
+        "Standard_D16alds_v7",
+        "Standard_D32alds_v7",
+        "Standard_D48alds_v7",
+        "Standard_D64alds_v7",
+        "Standard_D16als_v7",
+        "Standard_D32als_v7",
+        "Standard_D48als_v7",
+        "Standard_D64als_v7",
+        "Standard_D8as_v7",
+        "Standard_D16as_v7",
+        "Standard_D32as_v7",
+        "Standard_D48as_v7",
+        "Standard_D64as_v7",
+        "Standard_D8ds_v7",
+        "Standard_D16ds_v7",
+        "Standard_D32ds_v7",
+        "Standard_D48ds_v7",
+        "Standard_D64ds_v7",
+        "Standard_D16lds_v7",
+        "Standard_D32lds_v7",
+        "Standard_D48lds_v7",
+        "Standard_D64lds_v7",
+        "Standard_D16ls_v7",
+        "Standard_D32ls_v7",
+        "Standard_D48ls_v7",
+        "Standard_D64ls_v7",
+        "Standard_D8s_v7",
+        "Standard_D16s_v7",
+        "Standard_D32s_v7",
+        "Standard_D48s_v7",
+        "Standard_D64s_v7",
+        "Standard_E8ads_v7",
+        "Standard_E16ads_v7",
+        "Standard_E32ads_v7",
+        "Standard_E48ads_v7",
+        "Standard_E64ads_v7",
+        "Standard_E8as_v7",
+        "Standard_E16as_v7",
+        "Standard_E32as_v7",
+        "Standard_E48as_v7",
+        "Standard_E64as_v7",
+        "Standard_E8ds_v7",
+        "Standard_E16ds_v7",
+        "Standard_E20ds_v7",
+        "Standard_E32ds_v7",
+        "Standard_E48ds_v7",
+        "Standard_E64ds_v7",
+        "Standard_E8s_v7",
+        "Standard_E16s_v7",
+        "Standard_E20s_v7",
+        "Standard_E32s_v7",
+        "Standard_E48s_v7",
+        "Standard_E64s_v7"
+      ],
+      "metadata": {
+        "description": "Size of the ArcBox client VM (v5 or newer D/E-series x64 sizes with 8+ vCPUs and 32+ GB). Leave empty for the flavor default (Standard_D4s_v7 for DevOps, Standard_D8s_v7 otherwise)."
+      }
+    },
+    "deployNatGateway": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Deploy a NAT Gateway for outbound internet access (required where policy blocks default outbound access). Always deployed with Bastion or the DevOps/DataOps flavors."
+      }
+    },
     "vhdStorageAccountName": {
       "type": "string",
       "defaultValue": "arcboxfilesdonotdelete",
@@ -1577,6 +1796,9 @@
           },
           "vhdContainerName": {
             "value": "[parameters('vhdContainerName')]"
+          },
+          "clientVmSize": {
+            "value": "[parameters('clientVmSize')]"
           }
         },
         "template": {
@@ -1586,7 +1808,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.38.33.27573",
-              "templateHash": "11712171425519511535"
+              "templateHash": "10041046357934699435"
             }
           },
           "parameters": {
@@ -1879,6 +2101,13 @@
                 "description": "Name of the Key Vault holding the ArcBox secrets"
               }
             },
+            "clientVmSize": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Optional. Size of the ArcBox client VM. Leave empty for the flavor default (Standard_D4s_v7 for DevOps, Standard_D8s_v7 otherwise)."
+              }
+            },
             "vhdStorageAccountName": {
               "type": "string",
               "defaultValue": "",
@@ -1989,7 +2218,7 @@
               },
               "properties": {
                 "hardwareProfile": {
-                  "vmSize": "[if(equals(parameters('flavor'), 'DevOps'), 'Standard_D4s_v7', if(equals(parameters('flavor'), 'DataOps'), 'Standard_D8s_v7', 'Standard_D8s_v7'))]"
+                  "vmSize": "[if(not(empty(parameters('clientVmSize'))), parameters('clientVmSize'), if(equals(parameters('flavor'), 'DevOps'), 'Standard_D4s_v7', 'Standard_D8s_v7'))]"
                 },
                 "storageProfile": {
                   "osDisk": {
@@ -2355,6 +2584,9 @@
           },
           "keyVaultName": {
             "value": "[variables('keyVaultName')]"
+          },
+          "deployNatGateway": {
+            "value": "[parameters('deployNatGateway')]"
           }
         },
         "template": {
@@ -2461,6 +2693,27 @@
                 "description": "Bastion host Sku name"
               }
             },
+            "deployNatGateway": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Deploy a NAT Gateway for outbound internet access (required where policy blocks default outbound access). Always deployed with Bastion or the DevOps/DataOps flavors."
+              }
+            },
+            "natGatewayName": {
+              "type": "string",
+              "defaultValue": "[format('{0}-NatGateway', parameters('namingPrefix'))]",
+              "metadata": {
+                "description": "Name of the NAT Gateway"
+              }
+            },
+            "drNatGatewayName": {
+              "type": "string",
+              "defaultValue": "[format('{0}-DR-NatGateway', parameters('namingPrefix'))]",
+              "metadata": {
+                "description": "Name of the DR network NAT Gateway"
+              }
+            },
             "networkSecurityGroupName": {
               "type": "string",
               "defaultValue": "[format('{0}-NSG', parameters('namingPrefix'))]",
@@ -2532,6 +2785,7 @@
             "dcSubnetPrefix": "10.16.2.0/24",
             "drAddressPrefix": "172.16.0.0/16",
             "drSubnetPrefix": "172.16.128.0/17",
+            "deployNat": "[or(or(parameters('deployNatGateway'), parameters('deployBastion')), not(equals(parameters('flavor'), 'ITPro')))]",
             "bastionSubnetName": "AzureBastionSubnet",
             "bastionSubnetRef": "[format('{0}/subnets/{1}', resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName')), variables('bastionSubnetName'))]",
             "bastionName": "[format('{0}-Bastion', parameters('namingPrefix'))]",
@@ -2546,7 +2800,9 @@
                   "privateLinkServiceNetworkPolicies": "Enabled",
                   "networkSecurityGroup": {
                     "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('networkSecurityGroupName'))]"
-                  }
+                  },
+                  "natGateway": "[if(variables('deployNat'), createObject('id', resourceId('Microsoft.Network/natGateways', parameters('natGatewayName'))), null())]",
+                  "defaultOutboundAccess": false
                 }
               }
             ],
@@ -2560,7 +2816,9 @@
                   "privateLinkServiceNetworkPolicies": "Enabled",
                   "networkSecurityGroup": {
                     "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('networkSecurityGroupName'))]"
-                  }
+                  },
+                  "natGateway": "[if(variables('deployNat'), createObject('id', resourceId('Microsoft.Network/natGateways', parameters('natGatewayName'))), null())]",
+                  "defaultOutboundAccess": false
                 }
               },
               {
@@ -2571,7 +2829,9 @@
                   "privateLinkServiceNetworkPolicies": "Enabled",
                   "networkSecurityGroup": {
                     "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('networkSecurityGroupName'))]"
-                  }
+                  },
+                  "natGateway": "[if(variables('deployNat'), createObject('id', resourceId('Microsoft.Network/natGateways', parameters('natGatewayName'))), null())]",
+                  "defaultOutboundAccess": false
                 }
               }
             ]
@@ -2595,6 +2855,7 @@
               },
               "dependsOn": [
                 "bastionNetworkSecurityGroup",
+                "natGateway",
                 "networkSecurityGroup",
                 "policyDeployment"
               ]
@@ -2621,14 +2882,89 @@
                       "addressPrefix": "[variables('drSubnetPrefix')]",
                       "networkSecurityGroup": {
                         "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('networkSecurityGroupName'))]"
-                      }
+                      },
+                      "natGateway": "[if(equals(parameters('flavor'), 'DataOps'), createObject('id', resourceId('Microsoft.Network/natGateways', parameters('drNatGatewayName'))), null())]",
+                      "defaultOutboundAccess": false
                     }
                   }
                 ]
               },
               "dependsOn": [
+                "natGatewayDR",
                 "networkSecurityGroup",
                 "policyDeployment"
+              ]
+            },
+            "natGatewayPublicIp": {
+              "condition": "[variables('deployNat')]",
+              "type": "Microsoft.Network/publicIPAddresses",
+              "apiVersion": "2024-07-01",
+              "name": "[format('{0}-PIP', parameters('natGatewayName'))]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "publicIPAllocationMethod": "Static",
+                "publicIPAddressVersion": "IPv4",
+                "idleTimeoutInMinutes": 4
+              },
+              "sku": {
+                "name": "Standard"
+              }
+            },
+            "natGatewayDRPublicIp": {
+              "condition": "[equals(parameters('flavor'), 'DataOps')]",
+              "type": "Microsoft.Network/publicIPAddresses",
+              "apiVersion": "2024-07-01",
+              "name": "[format('{0}-DR-PIP', parameters('natGatewayName'))]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "publicIPAllocationMethod": "Static",
+                "publicIPAddressVersion": "IPv4",
+                "idleTimeoutInMinutes": 4
+              },
+              "sku": {
+                "name": "Standard"
+              }
+            },
+            "natGateway": {
+              "condition": "[variables('deployNat')]",
+              "type": "Microsoft.Network/natGateways",
+              "apiVersion": "2024-07-01",
+              "name": "[parameters('natGatewayName')]",
+              "location": "[parameters('location')]",
+              "sku": {
+                "name": "Standard"
+              },
+              "properties": {
+                "publicIpAddresses": [
+                  {
+                    "id": "[resourceId('Microsoft.Network/publicIPAddresses', format('{0}-PIP', parameters('natGatewayName')))]"
+                  }
+                ],
+                "idleTimeoutInMinutes": 4
+              },
+              "dependsOn": [
+                "natGatewayPublicIp"
+              ]
+            },
+            "natGatewayDR": {
+              "condition": "[equals(parameters('flavor'), 'DataOps')]",
+              "type": "Microsoft.Network/natGateways",
+              "apiVersion": "2024-07-01",
+              "name": "[parameters('drNatGatewayName')]",
+              "location": "[parameters('location')]",
+              "sku": {
+                "name": "Standard"
+              },
+              "properties": {
+                "publicIpAddresses": [
+                  {
+                    "id": "[resourceId('Microsoft.Network/publicIPAddresses', format('{0}-DR-PIP', parameters('natGatewayName')))]"
+                  }
+                ],
+                "idleTimeoutInMinutes": 4
+              },
+              "dependsOn": [
+                "natGatewayDRPublicIp"
               ]
             },
             "virtualNetworkName_peering_to_DR_vnet": {
@@ -6120,6 +6456,9 @@
           },
           "keyVaultName": {
             "value": "[variables('keyVaultName')]"
+          },
+          "deployNatGateway": {
+            "value": "[parameters('deployNatGateway')]"
           }
         },
         "template": {
@@ -6226,6 +6565,27 @@
                 "description": "Bastion host Sku name"
               }
             },
+            "deployNatGateway": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Deploy a NAT Gateway for outbound internet access (required where policy blocks default outbound access). Always deployed with Bastion or the DevOps/DataOps flavors."
+              }
+            },
+            "natGatewayName": {
+              "type": "string",
+              "defaultValue": "[format('{0}-NatGateway', parameters('namingPrefix'))]",
+              "metadata": {
+                "description": "Name of the NAT Gateway"
+              }
+            },
+            "drNatGatewayName": {
+              "type": "string",
+              "defaultValue": "[format('{0}-DR-NatGateway', parameters('namingPrefix'))]",
+              "metadata": {
+                "description": "Name of the DR network NAT Gateway"
+              }
+            },
             "networkSecurityGroupName": {
               "type": "string",
               "defaultValue": "[format('{0}-NSG', parameters('namingPrefix'))]",
@@ -6297,6 +6657,7 @@
             "dcSubnetPrefix": "10.16.2.0/24",
             "drAddressPrefix": "172.16.0.0/16",
             "drSubnetPrefix": "172.16.128.0/17",
+            "deployNat": "[or(or(parameters('deployNatGateway'), parameters('deployBastion')), not(equals(parameters('flavor'), 'ITPro')))]",
             "bastionSubnetName": "AzureBastionSubnet",
             "bastionSubnetRef": "[format('{0}/subnets/{1}', resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName')), variables('bastionSubnetName'))]",
             "bastionName": "[format('{0}-Bastion', parameters('namingPrefix'))]",
@@ -6311,7 +6672,9 @@
                   "privateLinkServiceNetworkPolicies": "Enabled",
                   "networkSecurityGroup": {
                     "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('networkSecurityGroupName'))]"
-                  }
+                  },
+                  "natGateway": "[if(variables('deployNat'), createObject('id', resourceId('Microsoft.Network/natGateways', parameters('natGatewayName'))), null())]",
+                  "defaultOutboundAccess": false
                 }
               }
             ],
@@ -6325,7 +6688,9 @@
                   "privateLinkServiceNetworkPolicies": "Enabled",
                   "networkSecurityGroup": {
                     "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('networkSecurityGroupName'))]"
-                  }
+                  },
+                  "natGateway": "[if(variables('deployNat'), createObject('id', resourceId('Microsoft.Network/natGateways', parameters('natGatewayName'))), null())]",
+                  "defaultOutboundAccess": false
                 }
               },
               {
@@ -6336,7 +6701,9 @@
                   "privateLinkServiceNetworkPolicies": "Enabled",
                   "networkSecurityGroup": {
                     "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('networkSecurityGroupName'))]"
-                  }
+                  },
+                  "natGateway": "[if(variables('deployNat'), createObject('id', resourceId('Microsoft.Network/natGateways', parameters('natGatewayName'))), null())]",
+                  "defaultOutboundAccess": false
                 }
               }
             ]
@@ -6360,6 +6727,7 @@
               },
               "dependsOn": [
                 "bastionNetworkSecurityGroup",
+                "natGateway",
                 "networkSecurityGroup",
                 "policyDeployment"
               ]
@@ -6386,14 +6754,89 @@
                       "addressPrefix": "[variables('drSubnetPrefix')]",
                       "networkSecurityGroup": {
                         "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('networkSecurityGroupName'))]"
-                      }
+                      },
+                      "natGateway": "[if(equals(parameters('flavor'), 'DataOps'), createObject('id', resourceId('Microsoft.Network/natGateways', parameters('drNatGatewayName'))), null())]",
+                      "defaultOutboundAccess": false
                     }
                   }
                 ]
               },
               "dependsOn": [
+                "natGatewayDR",
                 "networkSecurityGroup",
                 "policyDeployment"
+              ]
+            },
+            "natGatewayPublicIp": {
+              "condition": "[variables('deployNat')]",
+              "type": "Microsoft.Network/publicIPAddresses",
+              "apiVersion": "2024-07-01",
+              "name": "[format('{0}-PIP', parameters('natGatewayName'))]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "publicIPAllocationMethod": "Static",
+                "publicIPAddressVersion": "IPv4",
+                "idleTimeoutInMinutes": 4
+              },
+              "sku": {
+                "name": "Standard"
+              }
+            },
+            "natGatewayDRPublicIp": {
+              "condition": "[equals(parameters('flavor'), 'DataOps')]",
+              "type": "Microsoft.Network/publicIPAddresses",
+              "apiVersion": "2024-07-01",
+              "name": "[format('{0}-DR-PIP', parameters('natGatewayName'))]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "publicIPAllocationMethod": "Static",
+                "publicIPAddressVersion": "IPv4",
+                "idleTimeoutInMinutes": 4
+              },
+              "sku": {
+                "name": "Standard"
+              }
+            },
+            "natGateway": {
+              "condition": "[variables('deployNat')]",
+              "type": "Microsoft.Network/natGateways",
+              "apiVersion": "2024-07-01",
+              "name": "[parameters('natGatewayName')]",
+              "location": "[parameters('location')]",
+              "sku": {
+                "name": "Standard"
+              },
+              "properties": {
+                "publicIpAddresses": [
+                  {
+                    "id": "[resourceId('Microsoft.Network/publicIPAddresses', format('{0}-PIP', parameters('natGatewayName')))]"
+                  }
+                ],
+                "idleTimeoutInMinutes": 4
+              },
+              "dependsOn": [
+                "natGatewayPublicIp"
+              ]
+            },
+            "natGatewayDR": {
+              "condition": "[equals(parameters('flavor'), 'DataOps')]",
+              "type": "Microsoft.Network/natGateways",
+              "apiVersion": "2024-07-01",
+              "name": "[parameters('drNatGatewayName')]",
+              "location": "[parameters('location')]",
+              "sku": {
+                "name": "Standard"
+              },
+              "properties": {
+                "publicIpAddresses": [
+                  {
+                    "id": "[resourceId('Microsoft.Network/publicIPAddresses', format('{0}-DR-PIP', parameters('natGatewayName')))]"
+                  }
+                ],
+                "idleTimeoutInMinutes": 4
+              },
+              "dependsOn": [
+                "natGatewayDRPublicIp"
               ]
             },
             "virtualNetworkName_peering_to_DR_vnet": {

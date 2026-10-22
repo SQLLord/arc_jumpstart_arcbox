@@ -16,6 +16,9 @@ param drVirtualNetworkName string = '${namingPrefix}-DR-VNet'
 @description('Name of the DR subnet in the DR virtual network')
 param drSubnetName string = '${namingPrefix}-DR-Subnet'
 
+@description('Deploy a NAT Gateway for outbound internet access (required where policy blocks default outbound access). Always deployed with Bastion or the DevOps/DataOps flavors.')
+param deployNatGateway bool = false
+
 @description('Name of the NAT Gateway')
 param natGatewayName string = '${namingPrefix}-NatGateway'
 
@@ -92,6 +95,7 @@ var aksSubnetPrefix = '10.16.76.0/22'
 var dcSubnetPrefix = '10.16.2.0/24'
 var drAddressPrefix = '172.16.0.0/16'
 var drSubnetPrefix = '172.16.128.0/17'
+var deployNat = deployNatGateway || deployBastion || flavor != 'ITPro'
 var bastionSubnetName = 'AzureBastionSubnet'
 var bastionSubnetRef = '${arcVirtualNetwork.id}/subnets/${bastionSubnetName}'
 var bastionName = '${namingPrefix}-Bastion'
@@ -108,7 +112,7 @@ var primarySubnet = [
       networkSecurityGroup: {
         id: networkSecurityGroup.id
       }
-      natGateway: (deployBastion || flavor != 'ITPro') ? {
+      natGateway: deployNat ? {
         id: natGateway.id
       } : null
       defaultOutboundAccess: false
@@ -138,7 +142,7 @@ var dataOpsSubnets = [
       networkSecurityGroup: {
         id: networkSecurityGroup.id
       }
-      natGateway: (deployBastion || flavor != 'ITPro') ? {
+      natGateway: deployNat ? {
         id: natGateway.id
       } : null
       defaultOutboundAccess: false
@@ -153,7 +157,7 @@ var dataOpsSubnets = [
       networkSecurityGroup: {
         id: networkSecurityGroup.id
       }
-      natGateway: (deployBastion || flavor != 'ITPro')
+      natGateway: deployNat
         ? {
             id: natGateway.id
           }
@@ -213,7 +217,7 @@ resource drVirtualNetwork 'Microsoft.Network/virtualNetworks@2024-07-01' = if (f
           networkSecurityGroup: {
             id: networkSecurityGroup.id
           }
-          natGateway: (deployBastion || flavor != 'ITPro') ? {
+          natGateway: flavor == 'DataOps' ? {
             id: natGatewayDR.id
           } : null
           defaultOutboundAccess: false
@@ -223,7 +227,7 @@ resource drVirtualNetwork 'Microsoft.Network/virtualNetworks@2024-07-01' = if (f
   }
 }
 
-resource natGatewayPublicIp 'Microsoft.Network/publicIPAddresses@2024-07-01' = if (deployBastion || flavor != 'ITPro') {
+resource natGatewayPublicIp 'Microsoft.Network/publicIPAddresses@2024-07-01' = if (deployNat) {
   name: '${natGatewayName}-PIP'
   location: location
   properties: {
@@ -236,7 +240,7 @@ resource natGatewayPublicIp 'Microsoft.Network/publicIPAddresses@2024-07-01' = i
   }
 }
 
-resource natGatewayDRPublicIp 'Microsoft.Network/publicIPAddresses@2024-07-01' = if (deployBastion || flavor == 'DataOps') {
+resource natGatewayDRPublicIp 'Microsoft.Network/publicIPAddresses@2024-07-01' = if (flavor == 'DataOps') {
   name: '${natGatewayName}-DR-PIP'
   location: location
   properties: {
@@ -249,7 +253,7 @@ resource natGatewayDRPublicIp 'Microsoft.Network/publicIPAddresses@2024-07-01' =
   }
 }
 
-resource natGateway 'Microsoft.Network/natGateways@2024-07-01' = if (deployBastion || flavor != 'ITPro') {
+resource natGateway 'Microsoft.Network/natGateways@2024-07-01' = if (deployNat) {
   name: natGatewayName
   location: location
   sku: {
@@ -265,7 +269,7 @@ resource natGateway 'Microsoft.Network/natGateways@2024-07-01' = if (deployBasti
   }
 }
 
-resource natGatewayDR 'Microsoft.Network/natGateways@2024-07-01' = if (deployBastion || flavor == 'DataOps') {
+resource natGatewayDR 'Microsoft.Network/natGateways@2024-07-01' = if (flavor == 'DataOps') {
   name: drNatGatewayName
   location: location
   sku: {
