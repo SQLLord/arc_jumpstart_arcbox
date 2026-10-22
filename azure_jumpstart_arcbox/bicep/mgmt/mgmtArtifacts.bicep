@@ -19,6 +19,9 @@ param drSubnetName string = '${namingPrefix}-DR-Subnet'
 @description('Deploy a NAT Gateway for outbound internet access (required where policy blocks default outbound access). Always deployed with Bastion or the DevOps/DataOps flavors.')
 param deployNatGateway bool = false
 
+@description('Deploy a private endpoint for the Key Vault in the ArcBox subnet, with a private DNS zone linked to the VNet. Use where policy disables public network access on Key Vaults; the vault is then only reachable from inside the VNet.')
+param keyVaultPrivateEndpoint bool = false
+
 @description('Name of the NAT Gateway')
 param natGatewayName string = '${namingPrefix}-NatGateway'
 
@@ -614,16 +617,48 @@ module policyDeployment './policyAzureArc.bicep' = {
   }
 }
 
+// Private DNS zone for Key Vault private endpoints (Azure public cloud), linked to the ArcBox VNet so the client VM resolves the vault to its private IP
+var keyVaultPrivateDnsZoneName = 'privatelink.vaultcore.azure.net'
+
+resource keyVaultPrivateDnsZone 'Microsoft.Network/privateDnsZones@2024-06-01' = if (keyVaultPrivateEndpoint) {
+  name: keyVaultPrivateDnsZoneName
+  location: 'global'
+}
+
+resource keyVaultPrivateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = if (keyVaultPrivateEndpoint) {
+  parent: keyVaultPrivateDnsZone
+  name: '${virtualNetworkName}-link'
+  location: 'global'
+  properties: {
+    registrationEnabled: false
+    virtualNetwork: {
+      id: arcVirtualNetwork.id
+    }
+  }
+}
+
 module keyVault 'br/public:avm/res/key-vault/vault:0.5.1' = {
   name: 'keyVaultDeployment'
   dependsOn: [
     policyDeployment
+    keyVaultPrivateDnsZoneLink
   ]
   params: {
     name: toLower(keyVaultName)
     enablePurgeProtection: false
     enableSoftDelete: true
     location: location
+    // With a private endpoint (and no network ACLs) the module also disables public network access on the vault
+    privateEndpoints: keyVaultPrivateEndpoint
+      ? [
+          {
+            subnetResourceId: '${arcVirtualNetwork.id}/subnets/${subnetName}'
+            privateDnsZoneResourceIds: [
+              resourceId('Microsoft.Network/privateDnsZones', keyVaultPrivateDnsZoneName)
+            ]
+          }
+        ]
+      : []
   }
 }
 

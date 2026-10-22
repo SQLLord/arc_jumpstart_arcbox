@@ -208,6 +208,8 @@ def build_ui_definition(caps):
     net = [
         el(name='deployNatGateway', type='Microsoft.Common.CheckBox', label='Deploy a NAT Gateway for outbound internet access',
            toolTip='Required where policy blocks default outbound access. Always deployed with Bastion or the DevOps/DataOps flavors.'),
+        el(name='keyVaultPrivateEndpoint', type='Microsoft.Common.CheckBox', label='Use a private endpoint for the Key Vault',
+           toolTip='Required where policy disables public network access on Key Vaults. Adds a private endpoint in the ArcBox subnet and a private DNS zone linked to the VNet; the vault is then only reachable from inside the VNet.'),
         el(name='deployBastion', type='Microsoft.Common.CheckBox', label='Deploy Azure Bastion (client VM gets no public IP)'),
         el(name='bastionSku', type='Microsoft.Common.DropDown', label='Bastion SKU', defaultValue='Basic',
            visible=f'[{NET}.deployBastion]',

@@ -324,6 +324,9 @@ param nestedVmDiskMBps int = 125
 @description('Deploy a NAT Gateway for outbound internet access (required where policy blocks default outbound access). Always deployed with Bastion or the DevOps/DataOps flavors.')
 param deployNatGateway bool = false
 
+@description('Deploy a private endpoint for the Key Vault in the ArcBox subnet, with a private DNS zone linked to the VNet. Use where policy disables public network access on Key Vaults; the vault is then only reachable from inside the VNet.')
+param keyVaultPrivateEndpoint bool = false
+
 @description('Optional. Storage account holding the nested VM VHD images (private; accessed with the client VM managed identity). Leave empty to use the public Jumpstart storage account.')
 param vhdStorageAccountName string = 'arcboxfilesdonotdelete'
 
@@ -506,6 +509,7 @@ module mgmtArtifactsAndPolicyDeployment 'mgmt/mgmtArtifacts.bicep' = {
     registryPassword: registryPassword
     natGatewayName: natGatewayName
     deployNatGateway: deployNatGateway
+    keyVaultPrivateEndpoint: keyVaultPrivateEndpoint
     keyVaultName: resolvedKeyVaultName
   }
 }
@@ -542,6 +546,7 @@ module updateVNetDNSServers 'mgmt/mgmtArtifacts.bicep' = if (flavor == 'DataOps'
     keyVaultName: resolvedKeyVaultName
     natGatewayName: natGatewayName
     deployNatGateway: deployNatGateway
+    keyVaultPrivateEndpoint: keyVaultPrivateEndpoint
   }
   dependsOn: [
     addsVmDeployment

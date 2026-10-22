@@ -441,6 +441,13 @@
         "description": "Deploy a NAT Gateway for outbound internet access (required where policy blocks default outbound access). Always deployed with Bastion or the DevOps/DataOps flavors."
       }
     },
+    "keyVaultPrivateEndpoint": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Deploy a private endpoint for the Key Vault in the ArcBox subnet, with a private DNS zone linked to the VNet. Use where policy disables public network access on Key Vaults; the vault is then only reachable from inside the VNet."
+      }
+    },
     "vhdStorageAccountName": {
       "type": "string",
       "defaultValue": "arcboxfilesdonotdelete",
@@ -2731,6 +2738,9 @@
           },
           "deployNatGateway": {
             "value": "[parameters('deployNatGateway')]"
+          },
+          "keyVaultPrivateEndpoint": {
+            "value": "[parameters('keyVaultPrivateEndpoint')]"
           }
         },
         "template": {
@@ -2843,6 +2853,13 @@
               "defaultValue": false,
               "metadata": {
                 "description": "Deploy a NAT Gateway for outbound internet access (required where policy blocks default outbound access). Always deployed with Bastion or the DevOps/DataOps flavors."
+              }
+            },
+            "keyVaultPrivateEndpoint": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Deploy a private endpoint for the Key Vault in the ArcBox subnet, with a private DNS zone linked to the VNet. Use where policy disables public network access on Key Vaults; the vault is then only reachable from inside the VNet."
               }
             },
             "natGatewayName": {
@@ -2979,7 +2996,8 @@
                   "defaultOutboundAccess": false
                 }
               }
-            ]
+            ],
+            "keyVaultPrivateDnsZoneName": "privatelink.vaultcore.azure.net"
           },
           "resources": {
             "arcVirtualNetwork": {
@@ -3802,6 +3820,30 @@
                 "workspace"
               ]
             },
+            "keyVaultPrivateDnsZone": {
+              "condition": "[parameters('keyVaultPrivateEndpoint')]",
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2024-06-01",
+              "name": "[variables('keyVaultPrivateDnsZoneName')]",
+              "location": "global"
+            },
+            "keyVaultPrivateDnsZoneLink": {
+              "condition": "[parameters('keyVaultPrivateEndpoint')]",
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2024-06-01",
+              "name": "[format('{0}/{1}', variables('keyVaultPrivateDnsZoneName'), format('{0}-link', parameters('virtualNetworkName')))]",
+              "location": "global",
+              "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                  "id": "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]"
+                }
+              },
+              "dependsOn": [
+                "arcVirtualNetwork",
+                "keyVaultPrivateDnsZone"
+              ]
+            },
             "keyVault": {
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2024-11-01",
@@ -3823,7 +3865,8 @@
                   },
                   "location": {
                     "value": "[parameters('location')]"
-                  }
+                  },
+                  "privateEndpoints": "[if(parameters('keyVaultPrivateEndpoint'), createObject('value', createArray(createObject('subnetResourceId', format('{0}/subnets/{1}', resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName')), parameters('subnetName')), 'privateDnsZoneResourceIds', createArray(resourceId('Microsoft.Network/privateDnsZones', variables('keyVaultPrivateDnsZoneName')))))), createObject('value', createArray()))]"
                 },
                 "template": {
                   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
@@ -6261,7 +6304,8 @@
                 }
               },
               "dependsOn": [
-                "policyDeployment"
+                "policyDeployment",
+                "keyVaultPrivateDnsZoneLink"
               ]
             }
           },
@@ -6604,6 +6648,9 @@
           },
           "deployNatGateway": {
             "value": "[parameters('deployNatGateway')]"
+          },
+          "keyVaultPrivateEndpoint": {
+            "value": "[parameters('keyVaultPrivateEndpoint')]"
           }
         },
         "template": {
@@ -6716,6 +6763,13 @@
               "defaultValue": false,
               "metadata": {
                 "description": "Deploy a NAT Gateway for outbound internet access (required where policy blocks default outbound access). Always deployed with Bastion or the DevOps/DataOps flavors."
+              }
+            },
+            "keyVaultPrivateEndpoint": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Deploy a private endpoint for the Key Vault in the ArcBox subnet, with a private DNS zone linked to the VNet. Use where policy disables public network access on Key Vaults; the vault is then only reachable from inside the VNet."
               }
             },
             "natGatewayName": {
@@ -6852,7 +6906,8 @@
                   "defaultOutboundAccess": false
                 }
               }
-            ]
+            ],
+            "keyVaultPrivateDnsZoneName": "privatelink.vaultcore.azure.net"
           },
           "resources": {
             "arcVirtualNetwork": {
@@ -7675,6 +7730,30 @@
                 "workspace"
               ]
             },
+            "keyVaultPrivateDnsZone": {
+              "condition": "[parameters('keyVaultPrivateEndpoint')]",
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2024-06-01",
+              "name": "[variables('keyVaultPrivateDnsZoneName')]",
+              "location": "global"
+            },
+            "keyVaultPrivateDnsZoneLink": {
+              "condition": "[parameters('keyVaultPrivateEndpoint')]",
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2024-06-01",
+              "name": "[format('{0}/{1}', variables('keyVaultPrivateDnsZoneName'), format('{0}-link', parameters('virtualNetworkName')))]",
+              "location": "global",
+              "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                  "id": "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]"
+                }
+              },
+              "dependsOn": [
+                "arcVirtualNetwork",
+                "keyVaultPrivateDnsZone"
+              ]
+            },
             "keyVault": {
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2024-11-01",
@@ -7696,7 +7775,8 @@
                   },
                   "location": {
                     "value": "[parameters('location')]"
-                  }
+                  },
+                  "privateEndpoints": "[if(parameters('keyVaultPrivateEndpoint'), createObject('value', createArray(createObject('subnetResourceId', format('{0}/subnets/{1}', resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName')), parameters('subnetName')), 'privateDnsZoneResourceIds', createArray(resourceId('Microsoft.Network/privateDnsZones', variables('keyVaultPrivateDnsZoneName')))))), createObject('value', createArray()))]"
                 },
                 "template": {
                   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
@@ -10134,7 +10214,8 @@
                 }
               },
               "dependsOn": [
-                "policyDeployment"
+                "policyDeployment",
+                "keyVaultPrivateDnsZoneLink"
               ]
             }
           },

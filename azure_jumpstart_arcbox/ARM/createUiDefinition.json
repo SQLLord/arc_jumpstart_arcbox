@@ -690,6 +690,12 @@
             "toolTip": "Required where policy blocks default outbound access. Always deployed with Bastion or the DevOps/DataOps flavors."
           },
           {
+            "name": "keyVaultPrivateEndpoint",
+            "type": "Microsoft.Common.CheckBox",
+            "label": "Use a private endpoint for the Key Vault",
+            "toolTip": "Required where policy disables public network access on Key Vaults. Adds a private endpoint in the ArcBox subnet and a private DNS zone linked to the VNet; the vault is then only reachable from inside the VNet."
+          },
+          {
             "name": "deployBastion",
             "type": "Microsoft.Common.CheckBox",
             "label": "Deploy Azure Bastion (client VM gets no public IP)"
@@ -835,6 +841,7 @@
       "autoShutdownTimezone": "[if(steps('vm').autoShutdownEnabled, steps('vm').autoShutdownTimezone, 'UTC')]",
       "autoShutdownEmailRecipient": "[if(steps('vm').autoShutdownEnabled, steps('vm').autoShutdownEmailRecipient, '')]",
       "deployNatGateway": "[steps('network').deployNatGateway]",
+      "keyVaultPrivateEndpoint": "[steps('network').keyVaultPrivateEndpoint]",
       "deployBastion": "[steps('network').deployBastion]",
       "bastionSku": "[if(steps('network').deployBastion, steps('network').bastionSku, 'Basic')]",
       "rdpPort": "[steps('network').rdpPort]",
