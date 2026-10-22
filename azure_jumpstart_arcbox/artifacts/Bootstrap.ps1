@@ -37,7 +37,8 @@ param (
     [string]$autoShutdownEnabled,
     [string]$keyVaultName,
     [string]$vhdSourceUrl,
-    [string]$vhdSourceAuth
+    [string]$vhdSourceAuth,
+    [string]$nestedVmDisks
 )
 
 [System.Environment]::SetEnvironmentVariable('adminUsername', $adminUsername, [System.EnvironmentVariableTarget]::Machine)
@@ -75,6 +76,7 @@ param (
 [System.Environment]::SetEnvironmentVariable('autoShutdownEnabled', $autoShutdownEnabled, [System.EnvironmentVariableTarget]::Machine)
 [System.Environment]::SetEnvironmentVariable('vhdSourceUrl', $vhdSourceUrl, [System.EnvironmentVariableTarget]::Machine)
 [System.Environment]::SetEnvironmentVariable('vhdSourceAuth', $vhdSourceAuth, [System.EnvironmentVariableTarget]::Machine)
+[System.Environment]::SetEnvironmentVariable('nestedVmDisks', $nestedVmDisks, [System.EnvironmentVariableTarget]::Machine)
 
 if ($debugEnabled -eq "true") {
     [System.Environment]::SetEnvironmentVariable('ErrorActionPreference', "Break", [System.EnvironmentVariableTarget]::Machine)
@@ -83,7 +85,9 @@ if ($debugEnabled -eq "true") {
 }
 
 # Formatting VMs disk
-$disk = (Get-Disk | Where-Object partitionstyle -eq 'raw')[0]
+# With the PerVM disk layout there are extra raw data disks; the largest raw disk (the shared VMs disk) becomes F:
+$rawDisks = @(Get-Disk | Where-Object partitionstyle -eq 'raw' | Sort-Object -Property @{ Expression = 'Size'; Descending = $true }, Number)
+$disk = $rawDisks[0]
 $driveLetter = "F"
 $label = "VMsDisk"
 $disk | Initialize-Disk -PartitionStyle MBR -PassThru | `
@@ -119,6 +123,35 @@ New-Item -Path $Env:ArcBoxDataOpsDir -ItemType directory -Force
 New-Item -Path $Env:ArcBoxTestsDir -ItemType directory -Force
 
 Start-Transcript -Path $Env:ArcBoxLogsDir\Bootstrap.log
+
+# PerVM disk layout: mount one data disk per nested VM under the VMs folder (F:\Virtual Machines\<VM name>)
+# All per-VM disks are identical, so the order in which they are assigned to the nested VMs does not matter
+$nestedVmDiskNames = @(if ($nestedVmDisks -and $nestedVmDisks -ne 'none') { $nestedVmDisks -split ',' })
+if ($nestedVmDiskNames.Count -gt 0) {
+    Write-Host "Mounting per-VM data disks for: $($nestedVmDiskNames -join ', ')"
+    $perVmRawDisks = @($rawDisks | Select-Object -Skip 1)
+    if ($perVmRawDisks.Count -lt $nestedVmDiskNames.Count) {
+        Write-Warning "Found $($perVmRawDisks.Count) per-VM data disks but expected $($nestedVmDiskNames.Count). Nested VMs without a disk will use the shared VMs disk."
+    }
+
+    for ($i = 0; $i -lt [Math]::Min($perVmRawDisks.Count, $nestedVmDiskNames.Count); $i++) {
+        $nestedVmName = "$namingPrefix-$($nestedVmDiskNames[$i])"
+        $mountPath = Join-Path -Path $Env:ArcBoxVMDir -ChildPath $nestedVmName
+        New-Item -Path $mountPath -ItemType Directory -Force | Out-Null
+
+        $partition = $perVmRawDisks[$i] | Initialize-Disk -PartitionStyle GPT -PassThru | New-Partition -UseMaximumSize
+        $partition | Format-Volume -FileSystem NTFS -AllocationUnitSize 65536 -NewFileSystemLabel $nestedVmName -Confirm:$false -Force | Out-Null
+        $partition | Add-PartitionAccessPath -AccessPath "$mountPath\"
+
+        # Keep the per-VM disks off drive letters
+        $partition = Get-Partition -DiskNumber $partition.DiskNumber -PartitionNumber $partition.PartitionNumber
+        if ($partition.DriveLetter -and $partition.DriveLetter -ne [char]0) {
+            $partition | Remove-PartitionAccessPath -AccessPath "$($partition.DriveLetter):\"
+        }
+
+        Write-Host "Mounted disk $($partition.DiskNumber) at $mountPath"
+    }
+}
 
 # Set SyncForegroundPolicy to 1 to ensure that the scheduled task runs after the client VM joins the domain
 Set-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" "SyncForegroundPolicy" 1

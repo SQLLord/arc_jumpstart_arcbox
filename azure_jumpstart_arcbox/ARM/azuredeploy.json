@@ -395,6 +395,44 @@
         "description": "Size of the ArcBox client VM (v5 or newer D/E-series x64 sizes with 8+ vCPUs and 32+ GB). Leave empty for the flavor default (Standard_D4s_v7 for DevOps, Standard_D8s_v7 otherwise)."
       }
     },
+    "nestedVmDiskLayout": {
+      "type": "string",
+      "defaultValue": "Shared",
+      "allowedValues": [
+        "Shared",
+        "PerVM"
+      ],
+      "metadata": {
+        "description": "Shared: all nested VM VHDX files on one data disk. PerVM: one extra data disk per nested VM, mounted under F:\\Virtual Machines\\<VM name>."
+      }
+    },
+    "nestedVmDiskSizeGB": {
+      "type": "int",
+      "defaultValue": 128,
+      "minValue": 64,
+      "maxValue": 255,
+      "metadata": {
+        "description": "Size in GB of each per-VM data disk (PerVM layout). Must stay below the 256 GB shared VMs disk, which Bootstrap.ps1 identifies as the largest data disk."
+      }
+    },
+    "nestedVmDiskIOPS": {
+      "type": "int",
+      "defaultValue": 3000,
+      "minValue": 3000,
+      "maxValue": 80000,
+      "metadata": {
+        "description": "Provisioned IOPS of each per-VM data disk (PerVM layout). Premium SSD v2 includes 3000 IOPS; max 500 IOPS per GB."
+      }
+    },
+    "nestedVmDiskMBps": {
+      "type": "int",
+      "defaultValue": 125,
+      "minValue": 125,
+      "maxValue": 1200,
+      "metadata": {
+        "description": "Provisioned throughput in MB/s of each per-VM data disk (PerVM layout). Premium SSD v2 includes 125 MB/s; max 0.25 MB/s per IOPS."
+      }
+    },
     "deployNatGateway": {
       "type": "bool",
       "defaultValue": false,
@@ -1799,6 +1837,18 @@
           },
           "clientVmSize": {
             "value": "[parameters('clientVmSize')]"
+          },
+          "nestedVmDiskLayout": {
+            "value": "[parameters('nestedVmDiskLayout')]"
+          },
+          "nestedVmDiskSizeGB": {
+            "value": "[parameters('nestedVmDiskSizeGB')]"
+          },
+          "nestedVmDiskIOPS": {
+            "value": "[parameters('nestedVmDiskIOPS')]"
+          },
+          "nestedVmDiskMBps": {
+            "value": "[parameters('nestedVmDiskMBps')]"
           }
         },
         "template": {
@@ -1808,7 +1858,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.38.33.27573",
-              "templateHash": "10041046357934699435"
+              "templateHash": "16357302398276470856"
             }
           },
           "parameters": {
@@ -2053,6 +2103,44 @@
                 "description": "The SKU of the VMs disk"
               }
             },
+            "nestedVmDiskLayout": {
+              "type": "string",
+              "defaultValue": "Shared",
+              "allowedValues": [
+                "Shared",
+                "PerVM"
+              ],
+              "metadata": {
+                "description": "Shared: all nested VM VHDX files on one data disk. PerVM: one extra data disk per nested VM, mounted under F:\\Virtual Machines\\<VM name>."
+              }
+            },
+            "nestedVmDiskSizeGB": {
+              "type": "int",
+              "defaultValue": 128,
+              "minValue": 64,
+              "maxValue": 255,
+              "metadata": {
+                "description": "Size in GB of each per-VM data disk (PerVM layout). Must stay below the 256 GB shared VMs disk, which Bootstrap.ps1 identifies as the largest data disk."
+              }
+            },
+            "nestedVmDiskIOPS": {
+              "type": "int",
+              "defaultValue": 3000,
+              "minValue": 3000,
+              "maxValue": 80000,
+              "metadata": {
+                "description": "Provisioned IOPS of each per-VM data disk (PerVM layout). Premium SSD v2 includes 3000 IOPS; max 500 IOPS per GB."
+              }
+            },
+            "nestedVmDiskMBps": {
+              "type": "int",
+              "defaultValue": 125,
+              "minValue": 125,
+              "maxValue": 1200,
+              "metadata": {
+                "description": "Provisioned throughput in MB/s of each per-VM data disk (PerVM layout). Premium SSD v2 includes 125 MB/s; max 0.25 MB/s per IOPS."
+              }
+            },
             "debugEnabled": {
               "type": "bool",
               "defaultValue": false,
@@ -2131,6 +2219,19 @@
             }
           },
           "variables": {
+            "copy": [
+              {
+                "name": "nestedVmDataDisks",
+                "count": "[length(variables('nestedVmNames'))]",
+                "input": {
+                  "createOption": "Attach",
+                  "lun": "[add(copyIndex('nestedVmDataDisks'), 1)]",
+                  "managedDisk": {
+                    "id": "[resourceId('Microsoft.Compute/disks', format('{0}-VMsDisk-{1}', parameters('vmName'), variables('nestedVmNames')[copyIndex('nestedVmDataDisks')]))]"
+                  }
+                }
+              }
+            ],
             "useVhdStorageAccount": "[not(empty(parameters('vhdStorageAccountName')))]",
             "vhdSourceUrl": "[if(variables('useVhdStorageAccount'), format('https://{0}.blob.{1}/{2}', parameters('vhdStorageAccountName'), environment().suffixes.storage, parameters('vhdContainerName')), 'https://jumpstartprodsg.blob.core.windows.net/arcbox/prod')]",
             "vhdSourceAuth": "[if(variables('useVhdStorageAccount'), 'ManagedIdentity', 'Anonymous')]",
@@ -2140,7 +2241,8 @@
             "osDiskType": "Premium_LRS",
             "PublicIPNoBastion": {
               "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIpAddressName'))]"
-            }
+            },
+            "nestedVmNames": "[if(equals(parameters('nestedVmDiskLayout'), 'PerVM'), if(equals(parameters('flavor'), 'ITPro'), createArray('SQL', 'Win2K22', 'Win2K25', 'Ubuntu-01', 'Ubuntu-02'), if(equals(parameters('flavor'), 'DataOps'), createArray('SQL'), createArray())), createArray())]"
           },
           "resources": [
             {
@@ -2185,6 +2287,31 @@
               }
             },
             {
+              "copy": {
+                "name": "nestedVmDisks",
+                "count": "[length(variables('nestedVmNames'))]"
+              },
+              "type": "Microsoft.Compute/disks",
+              "apiVersion": "2024-03-02",
+              "name": "[format('{0}-VMsDisk-{1}', parameters('vmName'), variables('nestedVmNames')[copyIndex()])]",
+              "location": "[parameters('location')]",
+              "zones": [
+                "[parameters('zones')]"
+              ],
+              "sku": {
+                "name": "[parameters('vmsDiskSku')]"
+              },
+              "properties": {
+                "creationData": {
+                  "createOption": "Empty"
+                },
+                "diskSizeGB": "[parameters('nestedVmDiskSizeGB')]",
+                "burstingEnabled": false,
+                "diskMBpsReadWrite": "[parameters('nestedVmDiskMBps')]",
+                "diskIOPSReadWrite": "[parameters('nestedVmDiskIOPS')]"
+              }
+            },
+            {
               "type": "Microsoft.Compute/disks",
               "apiVersion": "2024-03-02",
               "name": "[format('{0}-VMsDisk', parameters('vmName'))]",
@@ -2201,8 +2328,8 @@
                 },
                 "diskSizeGB": 256,
                 "burstingEnabled": false,
-                "diskMBpsReadWrite": 200,
-                "diskIOPSReadWrite": 5000
+                "diskMBpsReadWrite": "[if(equals(parameters('nestedVmDiskLayout'), 'PerVM'), 125, 200)]",
+                "diskIOPSReadWrite": "[if(equals(parameters('nestedVmDiskLayout'), 'PerVM'), 3000, 5000)]"
               }
             },
             {
@@ -2236,15 +2363,7 @@
                     "sku": "[parameters('windowsOSVersion')]",
                     "version": "latest"
                   },
-                  "dataDisks": [
-                    {
-                      "createOption": "Attach",
-                      "lun": 0,
-                      "managedDisk": {
-                        "id": "[resourceId('Microsoft.Compute/disks', format('{0}-VMsDisk', parameters('vmName')))]"
-                      }
-                    }
-                  ]
+                  "dataDisks": "[concat(createArray(createObject('createOption', 'Attach', 'lun', 0, 'managedDisk', createObject('id', resourceId('Microsoft.Compute/disks', format('{0}-VMsDisk', parameters('vmName')))))), variables('nestedVmDataDisks'))]"
                 },
                 "networkProfile": {
                   "networkInterfaces": [
@@ -2267,6 +2386,7 @@
                 "billingProfile": "[if(parameters('enableAzureSpotPricing'), createObject('maxPrice', -1), null())]"
               },
               "dependsOn": [
+                "nestedVmDisks",
                 "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaceName'))]",
                 "[resourceId('Microsoft.Compute/disks', format('{0}-VMsDisk', parameters('vmName')))]"
               ]
@@ -2288,7 +2408,7 @@
                   "fileUris": [
                     "[uri(parameters('templateBaseUrl'), 'artifacts/Bootstrap.ps1')]"
                   ],
-                  "commandToExecute": "[format('powershell.exe -ExecutionPolicy Bypass -File Bootstrap.ps1 -adminUsername {0} -tenantId {1} -spnAuthority {2} -subscriptionId {3} -resourceGroup {4} -azdataUsername {5} -acceptEula {6} -registryUsername {7} -arcDcName {8} -azureLocation {9} -mssqlmiName {10} -POSTGRES_NAME {11} -POSTGRES_WORKER_NODE_COUNT {12} -POSTGRES_DATASIZE {13} -POSTGRES_SERVICE_TYPE {14} -stagingStorageAccountName {15} -workspaceName {16} -templateBaseUrl {17} -flavor {18} -k3sArcDataClusterName {19} -k3sArcClusterName {20} -aksArcClusterName {21} -aksdrArcClusterName {22} -githubUser {23} -githubBranch {24} -vmAutologon {25} -rdpPort {26} -addsDomainName {27} -customLocationRPOID {28} -resourceTags {29} -namingPrefix {30} -debugEnabled {31} -sqlServerEdition {32} -autoShutdownEnabled {33} -keyVaultName {34} -vhdSourceUrl {35} -vhdSourceAuth {36}', parameters('windowsAdminUsername'), parameters('tenantId'), parameters('spnAuthority'), subscription().subscriptionId, resourceGroup().name, parameters('azdataUsername'), parameters('acceptEula'), parameters('registryUsername'), parameters('arcDcName'), parameters('location'), parameters('mssqlmiName'), parameters('postgresName'), parameters('postgresWorkerNodeCount'), parameters('postgresDatasize'), parameters('postgresServiceType'), parameters('stagingStorageAccountName'), parameters('workspaceName'), parameters('templateBaseUrl'), parameters('flavor'), parameters('k3sArcDataClusterName'), parameters('k3sArcClusterName'), parameters('aksArcClusterName'), parameters('aksdrArcClusterName'), parameters('githubUser'), parameters('githubBranch'), parameters('vmAutologon'), parameters('rdpPort'), parameters('addsDomainName'), parameters('customLocationRPOID'), parameters('resourceTags'), parameters('namingPrefix'), parameters('debugEnabled'), parameters('sqlServerEdition'), parameters('autoShutdownEnabled'), parameters('keyVaultName'), variables('vhdSourceUrl'), variables('vhdSourceAuth'))]"
+                  "commandToExecute": "[format('powershell.exe -ExecutionPolicy Bypass -File Bootstrap.ps1 -adminUsername {0} -tenantId {1} -spnAuthority {2} -subscriptionId {3} -resourceGroup {4} -azdataUsername {5} -acceptEula {6} -registryUsername {7} -arcDcName {8} -azureLocation {9} -mssqlmiName {10} -POSTGRES_NAME {11} -POSTGRES_WORKER_NODE_COUNT {12} -POSTGRES_DATASIZE {13} -POSTGRES_SERVICE_TYPE {14} -stagingStorageAccountName {15} -workspaceName {16} -templateBaseUrl {17} -flavor {18} -k3sArcDataClusterName {19} -k3sArcClusterName {20} -aksArcClusterName {21} -aksdrArcClusterName {22} -githubUser {23} -githubBranch {24} -vmAutologon {25} -rdpPort {26} -addsDomainName {27} -customLocationRPOID {28} -resourceTags {29} -namingPrefix {30} -debugEnabled {31} -sqlServerEdition {32} -autoShutdownEnabled {33} -keyVaultName {34} -vhdSourceUrl {35} -vhdSourceAuth {36} -nestedVmDisks {37}', parameters('windowsAdminUsername'), parameters('tenantId'), parameters('spnAuthority'), subscription().subscriptionId, resourceGroup().name, parameters('azdataUsername'), parameters('acceptEula'), parameters('registryUsername'), parameters('arcDcName'), parameters('location'), parameters('mssqlmiName'), parameters('postgresName'), parameters('postgresWorkerNodeCount'), parameters('postgresDatasize'), parameters('postgresServiceType'), parameters('stagingStorageAccountName'), parameters('workspaceName'), parameters('templateBaseUrl'), parameters('flavor'), parameters('k3sArcDataClusterName'), parameters('k3sArcClusterName'), parameters('aksArcClusterName'), parameters('aksdrArcClusterName'), parameters('githubUser'), parameters('githubBranch'), parameters('vmAutologon'), parameters('rdpPort'), parameters('addsDomainName'), parameters('customLocationRPOID'), parameters('resourceTags'), parameters('namingPrefix'), parameters('debugEnabled'), parameters('sqlServerEdition'), parameters('autoShutdownEnabled'), parameters('keyVaultName'), variables('vhdSourceUrl'), variables('vhdSourceAuth'), if(empty(variables('nestedVmNames')), 'none', join(variables('nestedVmNames'), ',')))]"
                 }
               },
               "dependsOn": [

@@ -161,10 +161,51 @@ if ($Env:flavor -ne 'DevOps') {
     $null = Set-AzResourceGroup -ResourceGroupName $env:resourceGroup -Tag $tags
     $null = Set-AzResource -ResourceName $env:computername -ResourceGroupName $env:resourceGroup -ResourceType 'microsoft.compute/virtualmachines' -Tag $tags -Force
 
-    $existingVMDisk = Get-AzDisk -ResourceGroupName $env:resourceGroup | Where-Object name -Like *VMsDisk
+    # PerVM disk layout: each nested VM has its own data disk mounted at F:\Virtual Machines\<VM name> (see Bootstrap.ps1)
+    $perVmDisks = $Env:nestedVmDisks -and $Env:nestedVmDisks -ne 'none'
 
-    # Update disk IOPS and throughput before downloading nested VMs
-    az disk update --resource-group $env:resourceGroup --name $existingVMDisk.Name --disk-iops-read-write 80000 --disk-mbps-read-write 1200
+    function Get-NestedVmDir {
+        param([string]$VmName)
+        $vmDir = Join-Path -Path $Env:ArcBoxVMDir -ChildPath $VmName
+        if ($perVmDisks -and (Test-Path -Path $vmDir)) { return $vmDir }
+        return $Env:ArcBoxVMDir
+    }
+
+    # Point the nested VM DSC configuration at each VM's own disk (PerVM layout)
+    function Update-NestedVmDscPaths {
+        param([string]$Path)
+        if (-not $perVmDisks) { return }
+        $sharedDir = [regex]::Escape($Env:ArcBoxVMDir)
+        $currentVm = $null
+        $lines = foreach ($line in (Get-Content -Path $Path)) {
+            if ($line -match "^(\s*VhdPath:\s*)$sharedDir\\(?<vm>[^\\]+)\.vhdx\s*$") {
+                $currentVm = $Matches.vm
+                "$($Matches[1])$(Get-NestedVmDir $currentVm)\$currentVm.vhdx"
+            } elseif ($currentVm -and $line -match "^(\s*Path:\s*)$sharedDir\s*$") {
+                "$($Matches[1])$(Get-NestedVmDir $currentVm)"
+                $currentVm = $null
+            } else {
+                $line
+            }
+        }
+        $lines | Set-Content -Path $Path
+    }
+
+    # Temporarily raise IOPS and throughput of the nested VM data disk(s) while downloading the VHDX files
+    $nestedVmDataDisks = @(Get-AzDisk -ResourceGroupName $env:resourceGroup | Where-Object Name -Like '*VMsDisk*')
+    foreach ($vmDataDisk in $nestedVmDataDisks) {
+        # Premium SSD v2 limits: 500 IOPS per GB and 0.25 MB/s per IOPS
+        $boostIops = [Math]::Min(80000, 500 * $vmDataDisk.DiskSizeGB)
+        $boostMbps = [Math]::Min(1200, [Math]::Floor($boostIops / 4))
+        az disk update --resource-group $env:resourceGroup --name $vmDataDisk.Name --disk-iops-read-write $boostIops --disk-mbps-read-write $boostMbps
+    }
+
+    # Return the data disk(s) to their deployed IOPS and throughput (note: a disk's performance tier can be downgraded only once every 12 hours)
+    function Restore-NestedVmDataDiskPerformance {
+        foreach ($vmDataDisk in $nestedVmDataDisks) {
+            az disk update --resource-group $env:resourceGroup --name $vmDataDisk.Name --disk-iops-read-write $vmDataDisk.DiskIOPSReadWrite --disk-mbps-read-write $vmDataDisk.DiskMBpsReadWrite
+        }
+    }
 
     # Enable defender for cloud for SQL Server
     # Get workspace information
@@ -196,15 +237,21 @@ if ($Env:flavor -ne 'DevOps') {
 
     Write-Host 'Fetching SQL VM'
     $SQLvmName = "$namingPrefix-SQL"
-    $SQLvmvhdPath = "$Env:ArcBoxVMDir\$namingPrefix-SQL.vhdx"
+    $SQLvmDir = Get-NestedVmDir $SQLvmName
+    $SQLvmvhdPath = "$SQLvmDir\$namingPrefix-SQL.vhdx"
 
     # Verify if VHD files already downloaded especially when re-running this script
     if (!(Test-Path $SQLvmvhdPath)) {
         Write-Output 'Downloading nested VMs VHDX file for SQL. This can take some time, hold tight...'
-        azcopy cp $vhdSourceFolder $Env:ArcBoxVMDir --include-pattern "$vhdImageToDownload" --recursive=true --check-length=false --log-level=ERROR
+        azcopy cp $vhdSourceFolder $SQLvmDir --include-pattern "$vhdImageToDownload" --recursive=true --check-length=false --log-level=ERROR
 
         # Rename VHD file
-        Rename-Item -Path "$Env:ArcBoxVMDir\$vhdImageToDownload" -NewName $SQLvmvhdPath -Force
+        Rename-Item -Path "$SQLvmDir\$vhdImageToDownload" -NewName $SQLvmvhdPath -Force
+    }
+
+    # Only ITPro downloads more VHDX files, so the other flavors are done with the faster disk settings
+    if ($Env:flavor -ne 'ITPro') {
+        Restore-NestedVmDataDiskPerformance
     }
 
     # Create the nested VMs if not already created
@@ -213,6 +260,7 @@ if ($Env:flavor -ne 'DevOps') {
     # Create the nested SQL VMs
     $sqlDscConfigurationFile = "$Env:ArcBoxDscDir\virtual_machines_sql.dsc.yml"
     (Get-Content -Path $sqlDscConfigurationFile) -replace 'namingPrefixStage', $namingPrefix | Set-Content -Path $sqlDscConfigurationFile
+    Update-NestedVmDscPaths -Path $sqlDscConfigurationFile
     winget configure --file C:\ArcBox\DSC\virtual_machines_sql.dsc.yml --accept-configuration-agreements --disable-interactivity
 
     # Restarting Windows VM Network Adapters
@@ -428,18 +476,21 @@ if ($Env:flavor -ne 'DevOps') {
         Write-Header 'Fetching Nested VMs'
 
         $Win2k22vmName = "$namingPrefix-Win2K22"
-        $Win2k22vmvhdPath = "${Env:ArcBoxVMDir}\$namingPrefix-Win2K22.vhdx"
-
         $Win2k25vmName = "$namingPrefix-Win2K25"
-        $Win2k25vmvhdPath = "${Env:ArcBoxVMDir}\$namingPrefix-Win2K25.vhdx"
-
         $Ubuntu01vmName = "$namingPrefix-Ubuntu-01"
-        $Ubuntu01vmvhdPath = "${Env:ArcBoxVMDir}\$namingPrefix-Ubuntu-01.vhdx"
-
         $Ubuntu02vmName = "$namingPrefix-Ubuntu-02"
-        $Ubuntu02vmvhdPath = "${Env:ArcBoxVMDir}\$namingPrefix-Ubuntu-02.vhdx"
 
-        $files = 'ArcBox-Win2K22.vhdx;ArcBox-Win2K25.vhdx;ArcBox-Ubuntu-01.vhdx;ArcBox-Ubuntu-02.vhdx;'
+        # Source VHDX file in the storage account and the nested VM it belongs to
+        $nestedVms = @(
+            @{ Name = $Win2k22vmName; SourceFile = 'ArcBox-Win2K22.vhdx' }
+            @{ Name = $Win2k25vmName; SourceFile = 'ArcBox-Win2K25.vhdx' }
+            @{ Name = $Ubuntu01vmName; SourceFile = 'ArcBox-Ubuntu-01.vhdx' }
+            @{ Name = $Ubuntu02vmName; SourceFile = 'ArcBox-Ubuntu-02.vhdx' }
+        )
+        foreach ($nestedVm in $nestedVms) {
+            $nestedVm.Dir = Get-NestedVmDir $nestedVm.Name
+            $nestedVm.VhdPath = Join-Path -Path $nestedVm.Dir -ChildPath "$($nestedVm.Name).vhdx"
+        }
 
         $DeploymentProgressString = 'Downloading and configuring nested VMs'
 
@@ -454,43 +505,32 @@ if ($Env:flavor -ne 'DevOps') {
         $null = Set-AzResourceGroup -ResourceGroupName $env:resourceGroup -Tag $tags
         $null = Set-AzResource -ResourceName $env:computername -ResourceGroupName $env:resourceGroup -ResourceType 'microsoft.compute/virtualmachines' -Tag $tags -Force
 
-        # Verify if VHD files already downloaded especially when re-running this script
-        if (!((Test-Path $Win2K25vmvhdPath) -and (Test-Path $Win2k22vmvhdPath) -and (Test-Path $Ubuntu01vmvhdPath) -and (Test-Path $Ubuntu02vmvhdPath))) {
-            <# Action when all if and elseif conditions are false #>
-            $Env:AZCOPY_BUFFER_GB = 4
-            Write-Output 'Downloading nested VMs VHDX files. This can take some time, hold tight...'
-            azcopy cp $vhdSourceFolder $Env:ArcBoxVMDir --include-pattern $files --recursive=true --check-length=false --log-level=ERROR
-        }
+        # Download each VHDX into its VM's folder (its own disk with the PerVM layout), skipping files already downloaded when re-running this script
+        $Env:AZCOPY_BUFFER_GB = 4
+        foreach ($nestedVm in $nestedVms) {
+            if (Test-Path $nestedVm.VhdPath) {
+                Write-Output "$($nestedVm.VhdPath) already exists, skipping download"
+                continue
+            }
 
-        if ($namingPrefix -ne 'ArcBox') {
+            Write-Output "Downloading $($nestedVm.SourceFile) to $($nestedVm.Dir). This can take some time, hold tight..."
+            azcopy cp $vhdSourceFolder $nestedVm.Dir --include-pattern $nestedVm.SourceFile --recursive=true --check-length=false --log-level=ERROR
 
-            # Split the string into an array
-            $fileList = $files -split ';' | Where-Object { $_ -ne '' }
-
-            # Set the path to search for files
-            $searchPath = $Env:ArcBoxVMDir
-
-            # Loop through each file and rename if found
-            foreach ($file in $fileList) {
-                $filePath = Join-Path -Path $searchPath -ChildPath $file
-                if (Test-Path $filePath) {
-                    $newFileName = $file -replace 'ArcBox', $namingPrefix
-
-                    Rename-Item -Path $filePath -NewName $newFileName
-                    Write-Output "Renamed $file to $newFileName"
-                } else {
-                    Write-Output "$file not found in $searchPath"
-                }
+            # Rename to the nested VM name when using a custom naming prefix
+            $downloadedFile = Join-Path -Path $nestedVm.Dir -ChildPath $nestedVm.SourceFile
+            if (($downloadedFile -ne $nestedVm.VhdPath) -and (Test-Path $downloadedFile)) {
+                Rename-Item -Path $downloadedFile -NewName (Split-Path -Path $nestedVm.VhdPath -Leaf)
+                Write-Output "Renamed $($nestedVm.SourceFile) to $(Split-Path -Path $nestedVm.VhdPath -Leaf)"
             }
         }
 
-        # Update disk IOPS and throughput after downloading nested VMs (note: a disk's performance tier can be downgraded only once every 12 hours)
-        az disk update --resource-group $env:resourceGroup --name $existingVMDisk.Name --disk-iops-read-write $existingVMDisk.DiskIOPSReadWrite --disk-mbps-read-write $existingVMDisk.DiskMBpsReadWrite
+        Restore-NestedVmDataDiskPerformance
 
         # Create the nested VMs if not already created
         Write-Header 'Create Hyper-V VMs'
         $serversDscConfigurationFile = "$Env:ArcBoxDscDir\virtual_machines_itpro.dsc.yml"
         (Get-Content -Path $serversDscConfigurationFile) -replace 'namingPrefixStage', $namingPrefix | Set-Content -Path $serversDscConfigurationFile
+        Update-NestedVmDscPaths -Path $serversDscConfigurationFile
         winget configure --file C:\ArcBox\DSC\virtual_machines_itpro.dsc.yml --accept-configuration-agreements --disable-interactivity
 
     # Configure automatic start & stop action for the nested VMs

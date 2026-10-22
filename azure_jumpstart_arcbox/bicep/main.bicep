@@ -298,6 +298,28 @@ param keyVaultName string = ''
 ])
 param clientVmSize string = ''
 
+@description('Shared: all nested VM VHDX files on one data disk. PerVM: one extra data disk per nested VM, mounted under F:\\Virtual Machines\\<VM name>.')
+@allowed([
+  'Shared'
+  'PerVM'
+])
+param nestedVmDiskLayout string = 'Shared'
+
+@description('Size in GB of each per-VM data disk (PerVM layout). Must stay below the 256 GB shared VMs disk, which Bootstrap.ps1 identifies as the largest data disk.')
+@minValue(64)
+@maxValue(255)
+param nestedVmDiskSizeGB int = 128
+
+@description('Provisioned IOPS of each per-VM data disk (PerVM layout). Premium SSD v2 includes 3000 IOPS; max 500 IOPS per GB.')
+@minValue(3000)
+@maxValue(80000)
+param nestedVmDiskIOPS int = 3000
+
+@description('Provisioned throughput in MB/s of each per-VM data disk (PerVM layout). Premium SSD v2 includes 125 MB/s; max 0.25 MB/s per IOPS.')
+@minValue(125)
+@maxValue(1200)
+param nestedVmDiskMBps int = 125
+
 @description('Deploy a NAT Gateway for outbound internet access (required where policy blocks default outbound access). Always deployed with Bastion or the DevOps/DataOps flavors.')
 param deployNatGateway bool = false
 
@@ -418,6 +440,10 @@ module clientVmDeployment 'clientVm/clientVm.bicep' = {
     keyVaultName: resolvedKeyVaultName
     vhdStorageAccountName: vhdStorageAccountName
     clientVmSize: clientVmSize
+    nestedVmDiskLayout: nestedVmDiskLayout
+    nestedVmDiskSizeGB: nestedVmDiskSizeGB
+    nestedVmDiskIOPS: nestedVmDiskIOPS
+    nestedVmDiskMBps: nestedVmDiskMBps
     vhdStorageAccountResourceGroup: vhdStorageAccountResourceGroup
     vhdContainerName: vhdContainerName
     windowsAdminUsername: windowsAdminUsername

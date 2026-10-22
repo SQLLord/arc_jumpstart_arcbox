@@ -127,9 +127,36 @@
         "label": "Client VM",
         "elements": [
           {
-            "name": "clientVmSize",
+            "name": "nestedVmDiskLayout",
+            "type": "Microsoft.Common.OptionsGroup",
+            "label": "Nested VM disks",
+            "defaultValue": "One shared disk",
+            "toolTip": "One shared disk: all nested VM VHDX files on one data disk. One disk per nested VM: an extra Premium SSD v2 data disk for each nested VM, so they do not compete for IOPS. Total disk performance is still capped by the client VM size.",
+            "constraints": {
+              "allowedValues": [
+                {
+                  "label": "One shared disk",
+                  "value": "Shared"
+                },
+                {
+                  "label": "One disk per nested VM",
+                  "value": "PerVM"
+                }
+              ],
+              "required": true
+            }
+          },
+          {
+            "name": "clientVmSizeShared",
             "type": "Microsoft.Compute.SizeSelector",
             "label": "Client VM size",
+            "osPlatform": "Windows",
+            "imageReference": {
+              "publisher": "MicrosoftWindowsServer",
+              "offer": "WindowsServer",
+              "sku": "2025-datacenter-g2"
+            },
+            "count": 1,
             "toolTip": "Size of the ArcBox client VM that hosts the nested VMs. Limited to v5 or newer D/E-series x64 sizes with 8+ vCPUs and 32+ GB of memory.",
             "recommendedSizes": [
               "Standard_D8s_v7",
@@ -344,13 +371,239 @@
                 "Standard_E64s_v7"
               ]
             },
+            "visible": "[not(equals(steps('vm').nestedVmDiskLayout, 'PerVM'))]"
+          },
+          {
+            "name": "clientVmSizePerVm",
+            "type": "Microsoft.Compute.SizeSelector",
+            "label": "Client VM size",
             "osPlatform": "Windows",
             "imageReference": {
               "publisher": "MicrosoftWindowsServer",
               "offer": "WindowsServer",
               "sku": "2025-datacenter-g2"
             },
-            "count": 1
+            "count": 1,
+            "toolTip": "Size of the ArcBox client VM. With one disk per nested VM, only sizes whose disk IOPS and throughput limits can drive the default per-VM disks are shown.",
+            "recommendedSizes": [
+              "Standard_D16s_v7",
+              "Standard_D32s_v7",
+              "Standard_E16s_v7",
+              "Standard_D16ds_v7"
+            ],
+            "constraints": {
+              "allowedSizes": [
+                "Standard_D48_v5",
+                "Standard_D64_v5",
+                "Standard_D48ads_v5",
+                "Standard_D64ads_v5",
+                "Standard_D48as_v5",
+                "Standard_D64as_v5",
+                "Standard_D48d_v5",
+                "Standard_D64d_v5",
+                "Standard_D48ds_v5",
+                "Standard_D64ds_v5",
+                "Standard_D48lds_v5",
+                "Standard_D64lds_v5",
+                "Standard_D48ls_v5",
+                "Standard_D64ls_v5",
+                "Standard_D48s_v5",
+                "Standard_D64s_v5",
+                "Standard_E48_v5",
+                "Standard_E64_v5",
+                "Standard_E48ads_v5",
+                "Standard_E64ads_v5",
+                "Standard_E48as_v5",
+                "Standard_E64as_v5",
+                "Standard_E16bds_v5",
+                "Standard_E32bds_v5",
+                "Standard_E48bds_v5",
+                "Standard_E64bds_v5",
+                "Standard_E16bs_v5",
+                "Standard_E32bs_v5",
+                "Standard_E48bs_v5",
+                "Standard_E64bs_v5",
+                "Standard_E48d_v5",
+                "Standard_E64d_v5",
+                "Standard_E48ds_v5",
+                "Standard_E64ds_v5",
+                "Standard_E48s_v5",
+                "Standard_E64s_v5",
+                "Standard_D32ads_v6",
+                "Standard_D48ads_v6",
+                "Standard_D64ads_v6",
+                "Standard_D32alds_v6",
+                "Standard_D48alds_v6",
+                "Standard_D64alds_v6",
+                "Standard_D32als_v6",
+                "Standard_D48als_v6",
+                "Standard_D64als_v6",
+                "Standard_D32as_v6",
+                "Standard_D48as_v6",
+                "Standard_D64as_v6",
+                "Standard_D32ds_v6",
+                "Standard_D48ds_v6",
+                "Standard_D64ds_v6",
+                "Standard_D32lds_v6",
+                "Standard_D48lds_v6",
+                "Standard_D64lds_v6",
+                "Standard_D32ls_v6",
+                "Standard_D48ls_v6",
+                "Standard_D64ls_v6",
+                "Standard_D32s_v6",
+                "Standard_D48s_v6",
+                "Standard_D64s_v6",
+                "Standard_E20ads_v6",
+                "Standard_E32ads_v6",
+                "Standard_E48ads_v6",
+                "Standard_E64ads_v6",
+                "Standard_E20as_v6",
+                "Standard_E32as_v6",
+                "Standard_E48as_v6",
+                "Standard_E64as_v6",
+                "Standard_E20ds_v6",
+                "Standard_E32ds_v6",
+                "Standard_E48ds_v6",
+                "Standard_E64ds_v6",
+                "Standard_E20s_v6",
+                "Standard_E32s_v6",
+                "Standard_E48s_v6",
+                "Standard_E64s_v6",
+                "Standard_D16ads_v7",
+                "Standard_D32ads_v7",
+                "Standard_D48ads_v7",
+                "Standard_D64ads_v7",
+                "Standard_D16alds_v7",
+                "Standard_D32alds_v7",
+                "Standard_D48alds_v7",
+                "Standard_D64alds_v7",
+                "Standard_D16als_v7",
+                "Standard_D32als_v7",
+                "Standard_D48als_v7",
+                "Standard_D64als_v7",
+                "Standard_D16as_v7",
+                "Standard_D32as_v7",
+                "Standard_D48as_v7",
+                "Standard_D64as_v7",
+                "Standard_D16ds_v7",
+                "Standard_D32ds_v7",
+                "Standard_D48ds_v7",
+                "Standard_D64ds_v7",
+                "Standard_D16lds_v7",
+                "Standard_D32lds_v7",
+                "Standard_D48lds_v7",
+                "Standard_D64lds_v7",
+                "Standard_D16ls_v7",
+                "Standard_D32ls_v7",
+                "Standard_D48ls_v7",
+                "Standard_D64ls_v7",
+                "Standard_D16s_v7",
+                "Standard_D32s_v7",
+                "Standard_D48s_v7",
+                "Standard_D64s_v7",
+                "Standard_E16ads_v7",
+                "Standard_E32ads_v7",
+                "Standard_E48ads_v7",
+                "Standard_E64ads_v7",
+                "Standard_E16as_v7",
+                "Standard_E32as_v7",
+                "Standard_E48as_v7",
+                "Standard_E64as_v7",
+                "Standard_E16ds_v7",
+                "Standard_E20ds_v7",
+                "Standard_E32ds_v7",
+                "Standard_E48ds_v7",
+                "Standard_E64ds_v7",
+                "Standard_E16s_v7",
+                "Standard_E20s_v7",
+                "Standard_E32s_v7",
+                "Standard_E48s_v7",
+                "Standard_E64s_v7"
+              ]
+            },
+            "visible": "[equals(steps('vm').nestedVmDiskLayout, 'PerVM')]"
+          },
+          {
+            "name": "nestedVmDiskSizeGB",
+            "type": "Microsoft.Common.Slider",
+            "label": "Per-VM disk size",
+            "subLabel": "GB",
+            "min": 64,
+            "max": 224,
+            "step": 32,
+            "defaultValue": 128,
+            "showStepMarkers": false,
+            "visible": "[equals(steps('vm').nestedVmDiskLayout, 'PerVM')]",
+            "toolTip": "Size of each per-VM data disk (largest VHDX, SQL, is about 58 GB). Capped below the 256 GB shared VMs disk.",
+            "constraints": {
+              "required": true
+            }
+          },
+          {
+            "name": "nestedVmDiskIOPS",
+            "type": "Microsoft.Common.Slider",
+            "label": "Per-VM disk IOPS",
+            "subLabel": "IOPS",
+            "min": 3000,
+            "max": 80000,
+            "step": 1000,
+            "defaultValue": 3000,
+            "showStepMarkers": false,
+            "visible": "[equals(steps('vm').nestedVmDiskLayout, 'PerVM')]",
+            "toolTip": "Premium SSD v2 includes 3000 IOPS per disk at no extra charge. Max 500 IOPS per GB of disk size.",
+            "constraints": {
+              "required": true
+            }
+          },
+          {
+            "name": "nestedVmDiskMBps",
+            "type": "Microsoft.Common.Slider",
+            "label": "Per-VM disk throughput",
+            "subLabel": "MB/s",
+            "min": 125,
+            "max": 1200,
+            "step": 25,
+            "defaultValue": 125,
+            "showStepMarkers": false,
+            "visible": "[equals(steps('vm').nestedVmDiskLayout, 'PerVM')]",
+            "toolTip": "Premium SSD v2 includes 125 MB/s per disk at no extra charge. Max 0.25 MB/s per IOPS.",
+            "constraints": {
+              "required": true
+            }
+          },
+          {
+            "name": "diskPerformanceCheck",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Disk performance check",
+            "readOnly": true,
+            "defaultValue": "Checked against the selected VM size",
+            "toolTip": "Adds up the provisioned IOPS and throughput of every disk on the client VM: OS disk (500 IOPS / 100 MB/s), shared VMs disk (3000 IOPS / 125 MB/s) and one per-VM disk per nested VM (5 for ITPro, 1 for DataOps), and compares them with the VM size limits.",
+            "visible": "[equals(steps('vm').nestedVmDiskLayout, 'PerVM')]",
+            "constraints": {
+              "required": false,
+              "validations": [
+                {
+                  "isValid": "[less(steps('vm').nestedVmDiskSizeGB, 256)]",
+                  "message": "Per-VM disks must be smaller than the 256 GB shared VMs disk."
+                },
+                {
+                  "isValid": "[lessOrEquals(steps('vm').nestedVmDiskIOPS, mul(500, steps('vm').nestedVmDiskSizeGB))]",
+                  "message": "Per-VM disk IOPS is above the Premium SSD v2 limit of 500 IOPS per GB. Lower the IOPS or increase the disk size."
+                },
+                {
+                  "isValid": "[lessOrEquals(mul(4, steps('vm').nestedVmDiskMBps), steps('vm').nestedVmDiskIOPS)]",
+                  "message": "Per-VM disk throughput is above the Premium SSD v2 limit of 0.25 MB/s per IOPS. Lower the throughput or raise the IOPS."
+                },
+                {
+                  "isValid": "[or(empty(steps('vm').clientVmSizePerVm), lessOrEquals(add(3500, mul(if(equals(basics('flavor'), 'ITPro'), 5, if(equals(basics('flavor'), 'DataOps'), 1, 0)), steps('vm').nestedVmDiskIOPS)), int(first(split(first(split(last(split('|Standard_D8_v5:12800:276|Standard_D16_v5:25600:572|Standard_D32_v5:51200:824|Standard_D48_v5:76800:1254|Standard_D64_v5:80000:1654|Standard_D8ads_v5:12800:190|Standard_D16ads_v5:25600:366|Standard_D32ads_v5:51200:732|Standard_D48ads_v5:76800:1098|Standard_D64ads_v5:80000:1144|Standard_D8as_v5:12800:190|Standard_D16as_v5:25600:366|Standard_D32as_v5:51200:732|Standard_D48as_v5:76800:1098|Standard_D64as_v5:80000:1144|Standard_D8d_v5:12800:276|Standard_D16d_v5:25600:572|Standard_D32d_v5:51200:824|Standard_D48d_v5:76800:1254|Standard_D64d_v5:80000:1654|Standard_D8ds_v5:12800:276|Standard_D16ds_v5:25600:572|Standard_D32ds_v5:51200:824|Standard_D48ds_v5:76800:1254|Standard_D64ds_v5:80000:1654|Standard_D16lds_v5:25600:572|Standard_D32lds_v5:51200:824|Standard_D48lds_v5:76800:1254|Standard_D64lds_v5:80000:1654|Standard_D16ls_v5:25600:572|Standard_D32ls_v5:51200:824|Standard_D48ls_v5:76800:1254|Standard_D64ls_v5:80000:1654|Standard_D8s_v5:12800:276|Standard_D16s_v5:25600:572|Standard_D32s_v5:51200:824|Standard_D48s_v5:76800:1254|Standard_D64s_v5:80000:1654|Standard_E8_v5:12800:276|Standard_E16_v5:25600:572|Standard_E20_v5:32000:715|Standard_E32_v5:51200:824|Standard_E48_v5:76800:1254|Standard_E64_v5:80000:1654|Standard_E8ads_v5:12800:190|Standard_E16ads_v5:25600:366|Standard_E20ads_v5:32000:457|Standard_E32ads_v5:51200:732|Standard_E48ads_v5:76800:1098|Standard_E64ads_v5:80000:1144|Standard_E8as_v5:12800:190|Standard_E16as_v5:25600:366|Standard_E20as_v5:32000:457|Standard_E32as_v5:51200:732|Standard_E48as_v5:76800:1098|Standard_E64as_v5:80000:1144|Standard_E8bds_v5:24200:648|Standard_E16bds_v5:48400:1306|Standard_E32bds_v5:96800:2613|Standard_E48bds_v5:120000:3814|Standard_E64bds_v5:120000:3814|Standard_E8bs_v5:24200:648|Standard_E16bs_v5:48400:1306|Standard_E32bs_v5:96800:2613|Standard_E48bs_v5:120000:3814|Standard_E64bs_v5:120000:3814|Standard_E8d_v5:12800:276|Standard_E16d_v5:25600:572|Standard_E20d_v5:32000:715|Standard_E32d_v5:51200:824|Standard_E48d_v5:76800:1254|Standard_E64d_v5:80000:1654|Standard_E8ds_v5:12800:276|Standard_E16ds_v5:25600:572|Standard_E20ds_v5:32000:715|Standard_E32ds_v5:51200:824|Standard_E48ds_v5:76800:1254|Standard_E64ds_v5:80000:1654|Standard_E8s_v5:12800:276|Standard_E16s_v5:25600:572|Standard_E20s_v5:32000:715|Standard_E32s_v5:51200:824|Standard_E48s_v5:76800:1254|Standard_E64s_v5:80000:1654|Standard_D8ads_v6:15200:343|Standard_D16ads_v6:30400:686|Standard_D32ads_v6:57600:1373|Standard_D48ads_v6:86400:2059|Standard_D64ads_v6:115200:2746|Standard_D16alds_v6:30400:686|Standard_D32alds_v6:57600:1373|Standard_D48alds_v6:86400:2059|Standard_D64alds_v6:115200:2746|Standard_D16als_v6:30400:686|Standard_D32als_v6:57600:1373|Standard_D48als_v6:86400:2059|Standard_D64als_v6:115200:2746|Standard_D8as_v6:15200:343|Standard_D16as_v6:30400:686|Standard_D32as_v6:57600:1373|Standard_D48as_v6:86400:2059|Standard_D64as_v6:115200:2746|Standard_D8ds_v6:12800:404|Standard_D16ds_v6:25600:808|Standard_D32ds_v6:51200:1617|Standard_D48ds_v6:76800:2426|Standard_D64ds_v6:102400:3234|Standard_D16lds_v6:25600:808|Standard_D32lds_v6:51200:1617|Standard_D48lds_v6:76800:2426|Standard_D64lds_v6:102400:3234|Standard_D16ls_v6:25600:808|Standard_D32ls_v6:51200:1617|Standard_D48ls_v6:76800:2426|Standard_D64ls_v6:102400:3234|Standard_D8s_v6:12800:404|Standard_D16s_v6:25600:808|Standard_D32s_v6:51200:1617|Standard_D48s_v6:76800:2426|Standard_D64s_v6:102400:3234|Standard_E8ads_v6:15200:343|Standard_E16ads_v6:30400:686|Standard_E20ads_v6:38000:858|Standard_E32ads_v6:57600:1373|Standard_E48ads_v6:86400:2059|Standard_E64ads_v6:115200:2746|Standard_E8as_v6:15200:343|Standard_E16as_v6:30400:686|Standard_E20as_v6:38000:858|Standard_E32as_v6:57600:1373|Standard_E48as_v6:86400:2059|Standard_E64as_v6:115200:2746|Standard_E8ds_v6:12800:404|Standard_E16ds_v6:25600:808|Standard_E20ds_v6:32000:1010|Standard_E32ds_v6:51200:1617|Standard_E48ds_v6:76800:2426|Standard_E64ds_v6:102400:3234|Standard_E8s_v6:12800:404|Standard_E16s_v6:25600:808|Standard_E20s_v6:32000:1010|Standard_E32s_v6:51200:1617|Standard_E48s_v6:76800:2426|Standard_E64s_v6:102400:3234|Standard_D8ads_v7:16000:446|Standard_D16ads_v7:32000:892|Standard_D32ads_v7:64000:1785|Standard_D48ads_v7:96000:2677|Standard_D64ads_v7:128000:3570|Standard_D16alds_v7:32000:892|Standard_D32alds_v7:64000:1785|Standard_D48alds_v7:96000:2677|Standard_D64alds_v7:128000:3570|Standard_D16als_v7:32000:892|Standard_D32als_v7:64000:1785|Standard_D48als_v7:96000:2677|Standard_D64als_v7:128000:3570|Standard_D8as_v7:16000:446|Standard_D16as_v7:32000:892|Standard_D32as_v7:64000:1785|Standard_D48as_v7:96000:2677|Standard_D64as_v7:128000:3570|Standard_D8ds_v7:16000:450|Standard_D16ds_v7:32000:900|Standard_D32ds_v7:64000:1800|Standard_D48ds_v7:96000:2700|Standard_D64ds_v7:128000:3601|Standard_D16lds_v7:32000:900|Standard_D32lds_v7:64000:1800|Standard_D48lds_v7:96000:2700|Standard_D64lds_v7:128000:3601|Standard_D16ls_v7:32000:900|Standard_D32ls_v7:64000:1800|Standard_D48ls_v7:96000:2700|Standard_D64ls_v7:128000:3601|Standard_D8s_v7:16000:450|Standard_D16s_v7:32000:900|Standard_D32s_v7:64000:1800|Standard_D48s_v7:96000:2700|Standard_D64s_v7:128000:3601|Standard_E8ads_v7:16000:446|Standard_E16ads_v7:32000:892|Standard_E32ads_v7:64000:1785|Standard_E48ads_v7:96000:2677|Standard_E64ads_v7:128000:3570|Standard_E8as_v7:16000:446|Standard_E16as_v7:32000:892|Standard_E32as_v7:64000:1785|Standard_E48as_v7:96000:2677|Standard_E64as_v7:128000:3570|Standard_E8ds_v7:16000:450|Standard_E16ds_v7:32000:900|Standard_E20ds_v7:40000:1125|Standard_E32ds_v7:64000:1800|Standard_E48ds_v7:96000:2700|Standard_E64ds_v7:128000:3601|Standard_E8s_v7:16000:450|Standard_E16s_v7:32000:900|Standard_E20s_v7:40000:1125|Standard_E32s_v7:64000:1800|Standard_E48s_v7:96000:2700|Standard_E64s_v7:128000:3601|', concat('|', steps('vm').clientVmSizePerVm, ':'))), '|')), ':')))))]",
+                  "message": "The disks add up to more IOPS than the selected VM size supports. Lower the per-VM disk IOPS or choose a larger VM size."
+                },
+                {
+                  "isValid": "[or(empty(steps('vm').clientVmSizePerVm), lessOrEquals(add(225, mul(if(equals(basics('flavor'), 'ITPro'), 5, if(equals(basics('flavor'), 'DataOps'), 1, 0)), steps('vm').nestedVmDiskMBps)), int(last(split(first(split(last(split('|Standard_D8_v5:12800:276|Standard_D16_v5:25600:572|Standard_D32_v5:51200:824|Standard_D48_v5:76800:1254|Standard_D64_v5:80000:1654|Standard_D8ads_v5:12800:190|Standard_D16ads_v5:25600:366|Standard_D32ads_v5:51200:732|Standard_D48ads_v5:76800:1098|Standard_D64ads_v5:80000:1144|Standard_D8as_v5:12800:190|Standard_D16as_v5:25600:366|Standard_D32as_v5:51200:732|Standard_D48as_v5:76800:1098|Standard_D64as_v5:80000:1144|Standard_D8d_v5:12800:276|Standard_D16d_v5:25600:572|Standard_D32d_v5:51200:824|Standard_D48d_v5:76800:1254|Standard_D64d_v5:80000:1654|Standard_D8ds_v5:12800:276|Standard_D16ds_v5:25600:572|Standard_D32ds_v5:51200:824|Standard_D48ds_v5:76800:1254|Standard_D64ds_v5:80000:1654|Standard_D16lds_v5:25600:572|Standard_D32lds_v5:51200:824|Standard_D48lds_v5:76800:1254|Standard_D64lds_v5:80000:1654|Standard_D16ls_v5:25600:572|Standard_D32ls_v5:51200:824|Standard_D48ls_v5:76800:1254|Standard_D64ls_v5:80000:1654|Standard_D8s_v5:12800:276|Standard_D16s_v5:25600:572|Standard_D32s_v5:51200:824|Standard_D48s_v5:76800:1254|Standard_D64s_v5:80000:1654|Standard_E8_v5:12800:276|Standard_E16_v5:25600:572|Standard_E20_v5:32000:715|Standard_E32_v5:51200:824|Standard_E48_v5:76800:1254|Standard_E64_v5:80000:1654|Standard_E8ads_v5:12800:190|Standard_E16ads_v5:25600:366|Standard_E20ads_v5:32000:457|Standard_E32ads_v5:51200:732|Standard_E48ads_v5:76800:1098|Standard_E64ads_v5:80000:1144|Standard_E8as_v5:12800:190|Standard_E16as_v5:25600:366|Standard_E20as_v5:32000:457|Standard_E32as_v5:51200:732|Standard_E48as_v5:76800:1098|Standard_E64as_v5:80000:1144|Standard_E8bds_v5:24200:648|Standard_E16bds_v5:48400:1306|Standard_E32bds_v5:96800:2613|Standard_E48bds_v5:120000:3814|Standard_E64bds_v5:120000:3814|Standard_E8bs_v5:24200:648|Standard_E16bs_v5:48400:1306|Standard_E32bs_v5:96800:2613|Standard_E48bs_v5:120000:3814|Standard_E64bs_v5:120000:3814|Standard_E8d_v5:12800:276|Standard_E16d_v5:25600:572|Standard_E20d_v5:32000:715|Standard_E32d_v5:51200:824|Standard_E48d_v5:76800:1254|Standard_E64d_v5:80000:1654|Standard_E8ds_v5:12800:276|Standard_E16ds_v5:25600:572|Standard_E20ds_v5:32000:715|Standard_E32ds_v5:51200:824|Standard_E48ds_v5:76800:1254|Standard_E64ds_v5:80000:1654|Standard_E8s_v5:12800:276|Standard_E16s_v5:25600:572|Standard_E20s_v5:32000:715|Standard_E32s_v5:51200:824|Standard_E48s_v5:76800:1254|Standard_E64s_v5:80000:1654|Standard_D8ads_v6:15200:343|Standard_D16ads_v6:30400:686|Standard_D32ads_v6:57600:1373|Standard_D48ads_v6:86400:2059|Standard_D64ads_v6:115200:2746|Standard_D16alds_v6:30400:686|Standard_D32alds_v6:57600:1373|Standard_D48alds_v6:86400:2059|Standard_D64alds_v6:115200:2746|Standard_D16als_v6:30400:686|Standard_D32als_v6:57600:1373|Standard_D48als_v6:86400:2059|Standard_D64als_v6:115200:2746|Standard_D8as_v6:15200:343|Standard_D16as_v6:30400:686|Standard_D32as_v6:57600:1373|Standard_D48as_v6:86400:2059|Standard_D64as_v6:115200:2746|Standard_D8ds_v6:12800:404|Standard_D16ds_v6:25600:808|Standard_D32ds_v6:51200:1617|Standard_D48ds_v6:76800:2426|Standard_D64ds_v6:102400:3234|Standard_D16lds_v6:25600:808|Standard_D32lds_v6:51200:1617|Standard_D48lds_v6:76800:2426|Standard_D64lds_v6:102400:3234|Standard_D16ls_v6:25600:808|Standard_D32ls_v6:51200:1617|Standard_D48ls_v6:76800:2426|Standard_D64ls_v6:102400:3234|Standard_D8s_v6:12800:404|Standard_D16s_v6:25600:808|Standard_D32s_v6:51200:1617|Standard_D48s_v6:76800:2426|Standard_D64s_v6:102400:3234|Standard_E8ads_v6:15200:343|Standard_E16ads_v6:30400:686|Standard_E20ads_v6:38000:858|Standard_E32ads_v6:57600:1373|Standard_E48ads_v6:86400:2059|Standard_E64ads_v6:115200:2746|Standard_E8as_v6:15200:343|Standard_E16as_v6:30400:686|Standard_E20as_v6:38000:858|Standard_E32as_v6:57600:1373|Standard_E48as_v6:86400:2059|Standard_E64as_v6:115200:2746|Standard_E8ds_v6:12800:404|Standard_E16ds_v6:25600:808|Standard_E20ds_v6:32000:1010|Standard_E32ds_v6:51200:1617|Standard_E48ds_v6:76800:2426|Standard_E64ds_v6:102400:3234|Standard_E8s_v6:12800:404|Standard_E16s_v6:25600:808|Standard_E20s_v6:32000:1010|Standard_E32s_v6:51200:1617|Standard_E48s_v6:76800:2426|Standard_E64s_v6:102400:3234|Standard_D8ads_v7:16000:446|Standard_D16ads_v7:32000:892|Standard_D32ads_v7:64000:1785|Standard_D48ads_v7:96000:2677|Standard_D64ads_v7:128000:3570|Standard_D16alds_v7:32000:892|Standard_D32alds_v7:64000:1785|Standard_D48alds_v7:96000:2677|Standard_D64alds_v7:128000:3570|Standard_D16als_v7:32000:892|Standard_D32als_v7:64000:1785|Standard_D48als_v7:96000:2677|Standard_D64als_v7:128000:3570|Standard_D8as_v7:16000:446|Standard_D16as_v7:32000:892|Standard_D32as_v7:64000:1785|Standard_D48as_v7:96000:2677|Standard_D64as_v7:128000:3570|Standard_D8ds_v7:16000:450|Standard_D16ds_v7:32000:900|Standard_D32ds_v7:64000:1800|Standard_D48ds_v7:96000:2700|Standard_D64ds_v7:128000:3601|Standard_D16lds_v7:32000:900|Standard_D32lds_v7:64000:1800|Standard_D48lds_v7:96000:2700|Standard_D64lds_v7:128000:3601|Standard_D16ls_v7:32000:900|Standard_D32ls_v7:64000:1800|Standard_D48ls_v7:96000:2700|Standard_D64ls_v7:128000:3601|Standard_D8s_v7:16000:450|Standard_D16s_v7:32000:900|Standard_D32s_v7:64000:1800|Standard_D48s_v7:96000:2700|Standard_D64s_v7:128000:3601|Standard_E8ads_v7:16000:446|Standard_E16ads_v7:32000:892|Standard_E32ads_v7:64000:1785|Standard_E48ads_v7:96000:2677|Standard_E64ads_v7:128000:3570|Standard_E8as_v7:16000:446|Standard_E16as_v7:32000:892|Standard_E32as_v7:64000:1785|Standard_E48as_v7:96000:2677|Standard_E64as_v7:128000:3570|Standard_E8ds_v7:16000:450|Standard_E16ds_v7:32000:900|Standard_E20ds_v7:40000:1125|Standard_E32ds_v7:64000:1800|Standard_E48ds_v7:96000:2700|Standard_E64ds_v7:128000:3601|Standard_E8s_v7:16000:450|Standard_E16s_v7:32000:900|Standard_E20s_v7:40000:1125|Standard_E32s_v7:64000:1800|Standard_E48s_v7:96000:2700|Standard_E64s_v7:128000:3601|', concat('|', steps('vm').clientVmSizePerVm, ':'))), '|')), ':')))))]",
+                  "message": "The disks add up to more throughput (MB/s) than the selected VM size supports. Lower the per-VM disk throughput or choose a larger VM size."
+                }
+              ]
+            }
           },
           {
             "name": "zones",
@@ -564,27 +817,31 @@
       "logAnalyticsWorkspaceName": "[basics('logAnalyticsWorkspaceName')]",
       "windowsAdminUsername": "[basics('windowsAdminUsername')]",
       "windowsAdminPassword": "[basics('windowsAdminPassword')]",
-      "sshRSAPublicKey": "[basics('sshRSAPublicKey')]",
-      "clientVmSize": "[steps('vm').clientVmSize]",
+      "sshRSAPublicKey": "[if(not(equals(basics('flavor'), 'ITPro')), basics('sshRSAPublicKey'), '')]",
+      "nestedVmDiskLayout": "[steps('vm').nestedVmDiskLayout]",
+      "nestedVmDiskSizeGB": "[if(equals(steps('vm').nestedVmDiskLayout, 'PerVM'), steps('vm').nestedVmDiskSizeGB, 128)]",
+      "nestedVmDiskIOPS": "[if(equals(steps('vm').nestedVmDiskLayout, 'PerVM'), steps('vm').nestedVmDiskIOPS, 3000)]",
+      "nestedVmDiskMBps": "[if(equals(steps('vm').nestedVmDiskLayout, 'PerVM'), steps('vm').nestedVmDiskMBps, 125)]",
       "zones": "[steps('vm').zones]",
       "enableAzureSpotPricing": "[steps('vm').enableAzureSpotPricing]",
       "vmAutologon": "[steps('vm').vmAutologon]",
       "autoShutdownEnabled": "[steps('vm').autoShutdownEnabled]",
-      "autoShutdownTime": "[steps('vm').autoShutdownTime]",
-      "autoShutdownTimezone": "[steps('vm').autoShutdownTimezone]",
-      "autoShutdownEmailRecipient": "[steps('vm').autoShutdownEmailRecipient]",
+      "autoShutdownTime": "[if(steps('vm').autoShutdownEnabled, steps('vm').autoShutdownTime, '1800')]",
+      "autoShutdownTimezone": "[if(steps('vm').autoShutdownEnabled, steps('vm').autoShutdownTimezone, 'UTC')]",
+      "autoShutdownEmailRecipient": "[if(steps('vm').autoShutdownEnabled, steps('vm').autoShutdownEmailRecipient, '')]",
       "deployNatGateway": "[steps('network').deployNatGateway]",
       "deployBastion": "[steps('network').deployBastion]",
-      "bastionSku": "[steps('network').bastionSku]",
+      "bastionSku": "[if(steps('network').deployBastion, steps('network').bastionSku, 'Basic')]",
       "rdpPort": "[steps('network').rdpPort]",
       "githubAccount": "[steps('advanced').githubAccount]",
       "githubBranch": "[steps('advanced').githubBranch]",
       "githubUser": "[steps('advanced').githubUser]",
       "vhdStorageAccountName": "[steps('advanced').vhdStorageAccountName]",
-      "vhdStorageAccountResourceGroup": "[steps('advanced').vhdStorageAccountResourceGroup]",
-      "vhdContainerName": "[steps('advanced').vhdContainerName]",
+      "vhdStorageAccountResourceGroup": "[if(not(empty(steps('advanced').vhdStorageAccountName)), steps('advanced').vhdStorageAccountResourceGroup, 'Arcbox')]",
+      "vhdContainerName": "[if(not(empty(steps('advanced').vhdStorageAccountName)), steps('advanced').vhdContainerName, 'arcboxvhds')]",
       "keyVaultName": "[steps('advanced').keyVaultName]",
-      "debugEnabled": "[steps('advanced').debugEnabled]"
+      "debugEnabled": "[steps('advanced').debugEnabled]",
+      "clientVmSize": "[if(equals(steps('vm').nestedVmDiskLayout, 'PerVM'), steps('vm').clientVmSizePerVm, steps('vm').clientVmSizeShared)]"
     }
   }
 }
