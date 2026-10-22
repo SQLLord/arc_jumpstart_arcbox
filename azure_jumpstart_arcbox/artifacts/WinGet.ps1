@@ -52,7 +52,8 @@ function Invoke-WinGetConfiguration {
         [int]$MaxAttempts = 3
     )
     for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
-        winget configure --file $File --accept-configuration-agreements --disable-interactivity
+        # Out-Host keeps winget's output in the transcript instead of returning it as part of this function's result
+        winget configure --file $File --accept-configuration-agreements --disable-interactivity | Out-Host
         if ($LASTEXITCODE -eq 0) { return $true }
         Write-Warning "WinGet configuration $File did not fully apply (exit code $LASTEXITCODE, attempt $attempt of $MaxAttempts)"
         if ($attempt -lt $MaxAttempts) { Start-Sleep -Seconds (60 * $attempt) }
