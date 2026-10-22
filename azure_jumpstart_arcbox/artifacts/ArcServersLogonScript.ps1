@@ -534,11 +534,26 @@ if ($Env:flavor -ne 'DevOps') {
         winget configure --file C:\ArcBox\DSC\virtual_machines_itpro.dsc.yml --accept-configuration-agreements --disable-interactivity
 
     # Configure automatic start & stop action for the nested VMs
+    # A guest can ignore the shutdown request (for example while still finishing its first boot) and Stop-VM then waits forever.
+    # Wait up to 3 minutes, then force the VM off by ending its worker process, since Turn Off is refused while a shutdown is pending.
     Get-VM | Where-Object {$_.State -eq "Running"} |
         ForEach-Object -Parallel {
-            Stop-VM -Force -Name $PSItem.Name
-            Set-VM -Name $PSItem.Name -AutomaticStopAction ShutDown -AutomaticStartAction Start
-            Start-VM -Name $PSItem.Name
+            $vmName = $PSItem.Name
+            $stopJob = Stop-VM -Force -Name $vmName -AsJob
+            if (-not (Wait-Job -Job $stopJob -Timeout 180)) {
+                Write-Warning "$vmName did not shut down within 3 minutes, forcing it off"
+                $vmId = (Get-VM -Name $vmName).Id
+                Get-CimInstance -ClassName Win32_Process -Filter "Name='vmwp.exe'" |
+                    Where-Object { $_.CommandLine -match $vmId } |
+                    ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
+
+                $deadline = (Get-Date).AddMinutes(2)
+                while ((Get-VM -Name $vmName).State -ne 'Off' -and (Get-Date) -lt $deadline) { Start-Sleep -Seconds 5 }
+            }
+            Remove-Job -Job $stopJob -Force
+
+            Set-VM -Name $vmName -AutomaticStopAction ShutDown -AutomaticStartAction Start
+            Start-VM -Name $vmName
         }
     Start-Sleep -Seconds 30
 
