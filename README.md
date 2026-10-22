@@ -15,6 +15,23 @@ Welcome to the Arc Jumpstart source code repository! This repository is your go-
 - **Automation Source Code:** Arc Jumpstart automation scripts and tools utilized in our scenarios and solutions.
 - **Supportive Documents and Files:** Additional resources used across the [Arc Jumpstart](https://aka.ms/ArcJumpstart) website, aiding in various contexts and providing supplemental information.
 
+## 🚀 Deploy ArcBox
+
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FSQLLord%2Farc_jumpstart_arcbox%2Fmaster%2Fazure_jumpstart_arcbox%2FARM%2Fazuredeploy.json/createUIDefinitionUri/https%3A%2F%2Fraw.githubusercontent.com%2FSQLLord%2Farc_jumpstart_arcbox%2Fmaster%2Fazure_jumpstart_arcbox%2FARM%2FcreateUiDefinition.json)
+
+The button opens the ArcBox deployment form in the Azure portal. Compared with a plain custom deployment, the form adds:
+
+- **Client VM size picker** with pricing and availability for your subscription (v5 or newer D/E-series x64 sizes with 8+ vCPUs and 32+ GB of memory).
+- **Nested VM disks**: one shared data disk, or one Premium SSD v2 data disk per nested VM. With one disk per nested VM, only larger VM sizes are offered, and the form blocks the deployment if the disks add up to more IOPS or throughput than the VM size supports.
+- **Networking options**: NAT Gateway for outbound internet access (for environments where policy blocks default outbound access) and Azure Bastion.
+
+The form is defined in [`createUiDefinition.json`](azure_jumpstart_arcbox/ARM/createUiDefinition.json), and the template it deploys is [`azuredeploy.json`](azure_jumpstart_arcbox/ARM/azuredeploy.json). When Azure adds new VM sizes, regenerate the form and the template's allowed sizes:
+
+```bash
+az login
+python azure_jumpstart_arcbox/ARM/tools/generate_createuidefinition.py
+```
+
 ## 🛠️ How to Utilize this repository
 
 This source code repository is designed with contributors in mind and works in tandem with the [our documentation repository](https://github.com/SQLLord/arc_jumpstart_Arcbox_docs). While it's not mandatory, it's highly likely that contributors will need to clone both repositories to effectively contribute to Arc Jumpstart.
