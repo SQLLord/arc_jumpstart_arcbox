@@ -87,19 +87,27 @@ def build_ui_definition(caps):
                    if caps[n][0] >= BASE_IOPS + ITPRO_NESTED_VMS * PERVM_DEFAULT_IOPS
                    and caps[n][1] >= BASE_MBPS + ITPRO_NESTED_VMS * PERVM_DEFAULT_MBPS]
 
-    # Lookup table for the UI expressions: |size:iops:mbps|size:iops:mbps|...
-    caps_table = '|' + '|'.join(f'{n}:{caps[n][0]}:{caps[n][1]}' for n in sizes) + '|'
-
     VM, NET, ADV = "steps('vm')", "steps('network')", "steps('advanced')"
     IS_PERVM = f"equals({VM}.nestedVmDiskLayout, 'PerVM')"
     PERVM_SIZE = f'{VM}.clientVmSizePerVm'
     NESTED_VM_COUNT = "if(equals(basics('flavor'), 'ITPro'), 5, if(equals(basics('flavor'), 'DataOps'), 1, 0))"
-    # "iops:mbps" of the selected PerVM size, looked up in caps_table
-    SIZE_CAPS = f"first(split(last(split('{caps_table}', concat('|', {PERVM_SIZE}, ':'))), '|'))"
-    VM_IOPS = f"int(first(split({SIZE_CAPS}, ':')))"
-    VM_MBPS = f"int(last(split({SIZE_CAPS}, ':')))"
-    NEED_IOPS = f'add({BASE_IOPS}, mul({NESTED_VM_COUNT}, {VM}.nestedVmDiskIOPS))'
-    NEED_MBPS = f'add({BASE_MBPS}, mul({NESTED_VM_COUNT}, {VM}.nestedVmDiskMBps))'
+
+    def headroom(index, base):
+        """Expression for the IOPS (index 0) or MB/s (index 1) the selected PerVM size has left for the per-VM disks
+        after the OS and shared disks. Sizes are grouped by limit and matched with contains() on a |size|size| list,
+        since the portal does not evaluate string-parsing lookups reliably. Unknown sizes get 0 and fail the check."""
+        groups = collections.defaultdict(list)
+        for n in pervm_sizes:
+            groups[caps[n][index]].append(n)
+        expr = '0'
+        for limit in sorted(groups):
+            members = '|' + '|'.join(groups[limit]) + '|'
+            expr = f"if(contains('{members}', concat('|', {PERVM_SIZE}, '|')), {limit - base}, {expr})"
+        return expr
+
+    # Per-VM disks fit when count x per-disk value <= VM limit - (OS disk + shared disk)
+    FITS_IOPS = f'lessOrEquals(mul({NESTED_VM_COUNT}, {VM}.nestedVmDiskIOPS), {headroom(0, BASE_IOPS)})'
+    FITS_MBPS = f'lessOrEquals(mul({NESTED_VM_COUNT}, {VM}.nestedVmDiskMBps), {headroom(1, BASE_MBPS)})'
     SIZE_SELECTOR = dict(
         type='Microsoft.Compute.SizeSelector', label='Client VM size', osPlatform='Windows',
         imageReference=OD(publisher='MicrosoftWindowsServer', offer='WindowsServer', sku='2025-datacenter-g2'), count=1)
@@ -173,9 +181,9 @@ def build_ui_definition(caps):
                   message='Per-VM disk IOPS is above the Premium SSD v2 limit of 500 IOPS per GB. Lower the IOPS or increase the disk size.'),
                OD(isValid=f'[lessOrEquals(mul(4, {VM}.nestedVmDiskMBps), {VM}.nestedVmDiskIOPS)]',
                   message='Per-VM disk throughput is above the Premium SSD v2 limit of 0.25 MB/s per IOPS. Lower the throughput or raise the IOPS.'),
-               OD(isValid=f'[or(empty({PERVM_SIZE}), lessOrEquals({NEED_IOPS}, {VM_IOPS}))]',
+               OD(isValid=f'[or(empty({PERVM_SIZE}), {FITS_IOPS})]',
                   message='The disks add up to more IOPS than the selected VM size supports. Lower the per-VM disk IOPS or choose a larger VM size.'),
-               OD(isValid=f'[or(empty({PERVM_SIZE}), lessOrEquals({NEED_MBPS}, {VM_MBPS}))]',
+               OD(isValid=f'[or(empty({PERVM_SIZE}), {FITS_MBPS})]',
                   message='The disks add up to more throughput (MB/s) than the selected VM size supports. Lower the per-VM disk throughput or choose a larger VM size.'),
            ])),
         el(name='zones', type='Microsoft.Common.DropDown', label='Availability zone', defaultValue='1',
