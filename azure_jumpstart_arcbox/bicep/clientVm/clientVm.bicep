@@ -329,6 +329,14 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-07-01' = {
   }
 }
 
+// Role assignments for the client VM managed identity (Key Vault Administrator, Owner, Storage Blob Data Contributor)
+module vmRoleAssignments 'vmRoleAssignments.bicep' = {
+  name: 'vmRoleAssignments'
+  params: {
+    principalId: vm.identity.principalId
+  }
+}
+
 // Grant the client VM read access to the private VHD storage account before Bootstrap runs
 module vhdStorageRoleAssignment 'vhdStorageRoleAssignment.bicep' = if (useVhdStorageAccount) {
   name: 'vhdStorageRoleAssignment'
@@ -344,6 +352,7 @@ resource vmBootstrap 'Microsoft.Compute/virtualMachines/extensions@2024-07-01' =
   name: 'Bootstrap'
   dependsOn: [
     vhdStorageRoleAssignment
+    vmRoleAssignments
   ]
   location: location
   tags: {
@@ -363,18 +372,6 @@ resource vmBootstrap 'Microsoft.Compute/virtualMachines/extensions@2024-07-01' =
   }
 }
 
-// Add role assignment for the VM: Azure Key Vault Administrator role
-resource vmRoleAssignment_KeyVaultAdministrator 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(vm.id, 'Microsoft.Authorization/roleAssignments', 'Administrator')
-  scope: resourceGroup()
-  properties: {
-    principalId: vm.identity.principalId
-    roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483')
-    principalType: 'ServicePrincipal'
-
-  }
-}
-
 // Add role assignment for the deploy user: Azure Key Vault Administrator role
 resource deployerRoleAssignment_KeyVaultAdministrator 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(resourceGroup().id,deployer().objectId, resourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483'))
@@ -382,28 +379,6 @@ resource deployerRoleAssignment_KeyVaultAdministrator 'Microsoft.Authorization/r
   properties: {
     principalId: deployer().objectId
     roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483')
-  }
-}
-
-// Add role assignment for the VM: Owner role
-resource vmRoleAssignment_Owner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(vm.id, 'Microsoft.Authorization/roleAssignments', 'Owner')
-  scope: resourceGroup()
-  properties: {
-    principalId: vm.identity.principalId
-    roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', '8e3af657-a8ff-443c-a75c-2fe8c4bcb635')
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Add role assignment for the VM: Storage Blob Data Contributor
-resource vmRoleAssignment_Storage 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(vm.id, 'Microsoft.Authorization/roleAssignments', 'Storage Blob Data Contributor')
-  scope: resourceGroup()
-  properties: {
-    principalId: vm.identity.principalId
-    roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
-    principalType: 'ServicePrincipal'
   }
 }
 
