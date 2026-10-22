@@ -49,6 +49,7 @@ param deployBastion bool = false
 @allowed([
   'Basic'
   'Standard'
+  'Premium'
   'Developer'
 ])
 param bastionSku string = 'Basic'

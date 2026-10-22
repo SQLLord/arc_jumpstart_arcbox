@@ -48,10 +48,11 @@ param githubBranch string = 'master'
 @description('Choice to deploy Bastion to connect to the client VM')
 param deployBastion bool = false
 
-@description('Bastion host Sku name. The Developer SKU is currently supported in a limited number of regions: https://learn.microsoft.com/azure/bastion/quickstart-developer-sku')
+@description('Bastion host Sku name. Standard and Premium enable native client support (connect with the Windows Remote Desktop app via az network bastion rdp). The Developer SKU is currently supported in a limited number of regions: https://learn.microsoft.com/azure/bastion/quickstart-developer-sku')
 @allowed([
   'Basic'
   'Standard'
+  'Premium'
   'Developer'
 ])
 param bastionSku string = 'Basic'

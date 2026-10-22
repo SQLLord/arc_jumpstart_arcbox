@@ -700,18 +700,23 @@
             "label": "Bastion SKU",
             "defaultValue": "Basic",
             "visible": "[steps('network').deployBastion]",
+            "toolTip": "Standard and Premium also allow connecting with the Windows Remote Desktop app (az network bastion rdp). Developer is free but only available in some regions and has no dedicated public IP.",
             "constraints": {
               "allowedValues": [
                 {
-                  "label": "Basic",
+                  "label": "Basic (browser only)",
                   "value": "Basic"
                 },
                 {
-                  "label": "Standard",
+                  "label": "Standard (browser and Remote Desktop app)",
                   "value": "Standard"
                 },
                 {
-                  "label": "Developer",
+                  "label": "Premium (browser and Remote Desktop app)",
+                  "value": "Premium"
+                },
+                {
+                  "label": "Developer (browser only, limited regions)",
                   "value": "Developer"
                 }
               ],

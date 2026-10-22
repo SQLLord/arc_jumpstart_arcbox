@@ -25,6 +25,19 @@ The button opens the ArcBox deployment form in the Azure portal. Compared with a
 - **Nested VM disks**: one shared data disk, or one Premium SSD v2 data disk per nested VM. With one disk per nested VM, only larger VM sizes are offered, and the form blocks the deployment if the disks add up to more IOPS or throughput than the VM size supports.
 - **Networking options**: NAT Gateway for outbound internet access (for environments where policy blocks default outbound access) and Azure Bastion.
 
+### Connecting to the client VM
+
+- **Without Bastion:** RDP to the client VM's public IP. Add an NSG rule for your own IP address first; ArcBox does not open RDP to the internet.
+- **With Bastion (any SKU):** in the portal, open the `ArcBox-Client` VM and choose **Connect > Bastion** to connect in the browser.
+- **With Bastion Standard or Premium:** connect with the Windows Remote Desktop app (native client support is enabled for these SKUs). The desktop wallpaper with the deployment test results shows in this client:
+
+  ```powershell
+  az network bastion rdp --name ArcBox-Bastion --resource-group <resource-group> `
+    --target-resource-id $(az vm show --resource-group <resource-group> --name ArcBox-Client --query id --output tsv)
+  ```
+
+  This needs the Azure CLI `bastion` extension, which is installed on first use. Use your naming prefix instead of `ArcBox` if you changed it.
+
 The form is defined in [`createUiDefinition.json`](azure_jumpstart_arcbox/ARM/createUiDefinition.json), and the template it deploys is [`azuredeploy.json`](azure_jumpstart_arcbox/ARM/azuredeploy.json). When Azure adds new VM sizes, regenerate the form and the template's allowed sizes:
 
 ```bash

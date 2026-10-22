@@ -2,6 +2,7 @@
 @allowed([
   'Basic'
   'Standard'
+  'Premium'
   'Developer'
 ])
 param bastionSku string = 'Basic'
@@ -19,6 +20,9 @@ param namingPrefix string = 'ArcBox'
 var bastionName = '${namingPrefix}-Bastion'
 var bastionPublicIpAddressName = '${bastionName}-PIP'
 var bastionSubnetRef = '${vnetId}/subnets/AzureBastionSubnet'
+
+// Native client support (Windows Remote Desktop app via az network bastion rdp) is only available on Standard and Premium
+var enableNativeClient = contains(['Standard', 'Premium'], bastionSku)
 
 resource publicIpAddress 'Microsoft.Network/publicIPAddresses@2024-05-01' = if (bastionSku != 'Developer') {
   name: bastionPublicIpAddressName
@@ -40,6 +44,7 @@ resource bastionHost 'Microsoft.Network/bastionHosts@2024-05-01' = {
     name: bastionSku
   }
   properties: {
+    enableTunneling: enableNativeClient ? true : null
     virtualNetwork: bastionSku == 'Developer'
       ? {
           id: vnetId

@@ -110,10 +110,11 @@
       "allowedValues": [
         "Basic",
         "Standard",
+        "Premium",
         "Developer"
       ],
       "metadata": {
-        "description": "Bastion host Sku name. The Developer SKU is currently supported in a limited number of regions: https://learn.microsoft.com/azure/bastion/quickstart-developer-sku"
+        "description": "Bastion host Sku name. Standard and Premium enable native client support (connect with the Windows Remote Desktop app via az network bastion rdp). The Developer SKU is currently supported in a limited number of regions: https://learn.microsoft.com/azure/bastion/quickstart-developer-sku"
       }
     },
     "githubUser": {
@@ -2830,6 +2831,7 @@
               "allowedValues": [
                 "Basic",
                 "Standard",
+                "Premium",
                 "Developer"
               ],
               "metadata": {
@@ -6702,6 +6704,7 @@
               "allowedValues": [
                 "Basic",
                 "Standard",
+                "Premium",
                 "Developer"
               ],
               "metadata": {
@@ -10480,7 +10483,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.38.33.27573",
-              "templateHash": "12365370392776405634"
+              "templateHash": "13322342480899912112"
             }
           },
           "parameters": {
@@ -10490,6 +10493,7 @@
               "allowedValues": [
                 "Basic",
                 "Standard",
+                "Premium",
                 "Developer"
               ],
               "metadata": {
@@ -10521,7 +10525,8 @@
           "variables": {
             "bastionName": "[format('{0}-Bastion', parameters('namingPrefix'))]",
             "bastionPublicIpAddressName": "[format('{0}-PIP', variables('bastionName'))]",
-            "bastionSubnetRef": "[format('{0}/subnets/AzureBastionSubnet', parameters('vnetId'))]"
+            "bastionSubnetRef": "[format('{0}/subnets/AzureBastionSubnet', parameters('vnetId'))]",
+            "enableNativeClient": "[contains(createArray('Standard', 'Premium'), parameters('bastionSku'))]"
           },
           "resources": [
             {
@@ -10548,6 +10553,7 @@
                 "name": "[parameters('bastionSku')]"
               },
               "properties": {
+                "enableTunneling": "[if(variables('enableNativeClient'), true(), null())]",
                 "virtualNetwork": "[if(equals(parameters('bastionSku'), 'Developer'), createObject('id', parameters('vnetId')), null())]",
                 "ipConfigurations": "[if(not(equals(parameters('bastionSku'), 'Developer')), createArray(createObject('name', 'IpConf', 'properties', createObject('publicIPAddress', createObject('id', resourceId('Microsoft.Network/publicIPAddresses', variables('bastionPublicIpAddressName'))), 'subnet', createObject('id', variables('bastionSubnetRef'))))), null())]"
               },

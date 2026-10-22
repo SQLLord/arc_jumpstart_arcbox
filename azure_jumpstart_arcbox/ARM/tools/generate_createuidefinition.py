@@ -211,7 +211,13 @@ def build_ui_definition(caps):
         el(name='deployBastion', type='Microsoft.Common.CheckBox', label='Deploy Azure Bastion (client VM gets no public IP)'),
         el(name='bastionSku', type='Microsoft.Common.DropDown', label='Bastion SKU', defaultValue='Basic',
            visible=f'[{NET}.deployBastion]',
-           constraints=OD(allowedValues=[OD(label=x, value=x) for x in ('Basic', 'Standard', 'Developer')], required=True)),
+           toolTip='Standard and Premium also allow connecting with the Windows Remote Desktop app (az network bastion rdp). Developer is free but only available in some regions and has no dedicated public IP.',
+           constraints=OD(allowedValues=[
+               OD(label='Basic (browser only)', value='Basic'),
+               OD(label='Standard (browser and Remote Desktop app)', value='Standard'),
+               OD(label='Premium (browser and Remote Desktop app)', value='Premium'),
+               OD(label='Developer (browser only, limited regions)', value='Developer'),
+           ], required=True)),
         el(name='rdpPort', type='Microsoft.Common.TextBox', label='RDP port', defaultValue='3389',
            constraints=OD(required=True, regex='^[0-9]{2,5}$', validationMessage='A port number.')),
     ]
