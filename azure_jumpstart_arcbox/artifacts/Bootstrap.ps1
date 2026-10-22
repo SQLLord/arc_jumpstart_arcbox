@@ -169,14 +169,39 @@ Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
 
 Install-Module -Name Microsoft.PowerShell.PSResourceGet -Force
 
+# PowerShell Gallery downloads occasionally fail with transient errors (for example 404 on a package that exists), so retry.
+# Modules that still fail are recorded in the ArcBoxModuleInstallErrors resource group tag; WinGet.ps1 retries them after logon.
+$failedModules = @()
+function Install-PSResourceWithRetry {
+    param(
+        [string]$Name,
+        [string]$Version,
+        [switch]$Reinstall,
+        [int]$MaxAttempts = 3
+    )
+    $installParams = @{ Name = $Name; Scope = 'AllUsers'; Quiet = $true; AcceptLicense = $true; TrustRepository = $true; Reinstall = $Reinstall; ErrorAction = 'Stop' }
+    if ($Version) { $installParams.Version = $Version }
+    for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+        try {
+            Install-PSResource @installParams
+            return
+        }
+        catch {
+            Write-Warning "Installing PowerShell module $Name failed (attempt $attempt of $MaxAttempts): $($_.Exception.Message)"
+            if ($attempt -lt $MaxAttempts) { Start-Sleep -Seconds (30 * $attempt) }
+        }
+    }
+    $script:failedModules += $Name
+}
+
 # Pin Az-modules after other modules to avoid version conflicts
 # See: https://github.com/microsoft/azure_arc/issues/3359
-Install-PSResource -Name Az.Accounts -Version 5.3.1 -Scope AllUsers -Quiet -AcceptLicense -TrustRepository -Reinstall
-Install-PSResource -Name Az.KeyVault -Version 6.4.1 -Scope AllUsers -Quiet -AcceptLicense -TrustRepository -Reinstall
-Install-PSResource -Name Az.Compute -Version 11.1.0 -Scope AllUsers -Quiet -AcceptLicense -TrustRepository -Reinstall
-Install-PSResource -Name Az.Resources -Version 9.0.0 -Scope AllUsers -Quiet -AcceptLicense -TrustRepository -Reinstall
-Install-PSResource -Name Az.Storage -Version 9.4.0  -Scope AllUsers -Quiet -AcceptLicense -TrustRepository -Reinstall
-Install-PSResource -Name Microsoft.PowerShell.SecretManagement -Version 1.1.2 -Scope AllUsers -Quiet -AcceptLicense -TrustRepository -Reinstall
+Install-PSResourceWithRetry -Name Az.Accounts -Version 5.3.1 -Reinstall
+Install-PSResourceWithRetry -Name Az.KeyVault -Version 6.4.1 -Reinstall
+Install-PSResourceWithRetry -Name Az.Compute -Version 11.1.0 -Reinstall
+Install-PSResourceWithRetry -Name Az.Resources -Version 9.0.0 -Reinstall
+Install-PSResourceWithRetry -Name Az.Storage -Version 9.4.0 -Reinstall
+Install-PSResourceWithRetry -Name Microsoft.PowerShell.SecretManagement -Version 1.1.2 -Reinstall
 
 # Import the module to ensure the correct version is loaded
 Import-Module Az.Accounts -RequiredVersion 5.3.1 -Force
@@ -276,7 +301,21 @@ Copy-Item $PsHome\Profile.ps1 -Destination "C:\Program Files\PowerShell\7\"
 $modules = @("Az.ConnectedMachine", "Az.ConnectedKubernetes", "Az.CustomLocation", "Azure.Arc.Jumpstart.Common", "Pester")
 
 foreach ($module in $modules) {
-    Install-PSResource -Name $module -Scope AllUsers -Quiet -AcceptLicense -TrustRepository
+    Install-PSResourceWithRetry -Name $module
+}
+
+# Surface modules that could not be installed; this tag is not overwritten by the DeploymentProgress updates
+if ($failedModules.Count -gt 0) {
+    Write-Warning "PowerShell modules not installed after retries: $($failedModules -join ', ')"
+    try {
+        $tags = Get-AzResourceGroup -Name $resourceGroup | Select-Object -ExpandProperty Tags
+        if ($null -eq $tags) { $tags = @{} }
+        $tags["ArcBoxModuleInstallErrors"] = "Bootstrap could not install: $($failedModules -join ', '). WinGet.ps1 retries after logon."
+        $null = Set-AzResourceGroup -ResourceGroupName $resourceGroup -Tag $tags
+    }
+    catch {
+        Write-Warning "Could not set the ArcBoxModuleInstallErrors tag: $_"
+    }
 }
 
 Write-Header "Fetching GitHub Artifacts"

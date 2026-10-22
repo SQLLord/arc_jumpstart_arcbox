@@ -26,12 +26,15 @@ function Set-DeploymentProgress {
 function Install-PSResourceWithRetry {
     param(
         [string]$Name,
+        [string]$Version,
         [switch]$Prerelease,
         [int]$MaxAttempts = 3
     )
+    $installParams = @{ Name = $Name; Scope = 'AllUsers'; Quiet = $true; AcceptLicense = $true; TrustRepository = $true; Prerelease = $Prerelease; ErrorAction = 'Stop' }
+    if ($Version) { $installParams.Version = $Version }
     for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
         try {
-            Install-PSResource -Name $Name -Scope AllUsers -Quiet -AcceptLicense -TrustRepository -Prerelease:$Prerelease -ErrorAction Stop
+            Install-PSResource @installParams
             return
         }
         catch {
@@ -69,6 +72,48 @@ Install-PSResourceWithRetry -Name Microsoft.WinGet.DSC
 Install-PSResourceWithRetry -Name DSCR_Font
 Install-PSResourceWithRetry -Name HyperVDsc -Prerelease
 Install-PSResourceWithRetry -Name NetworkingDsc
+
+# Second chance for the modules Bootstrap.ps1 installs: a PowerShell Gallery outage during Bootstrap leaves them missing
+# (Bootstrap records them in the ArcBoxModuleInstallErrors tag), and the logon scripts need them
+$bootstrapModules = [ordered]@{
+    # Name = exact version (pinned in Bootstrap.ps1) or minimum version
+    'Az.Accounts'                           = @{ Version = '5.3.1'; Exact = $true }
+    'Az.KeyVault'                           = @{ Version = '6.4.1'; Exact = $true }
+    'Az.Compute'                            = @{ Version = '11.1.0'; Exact = $true }
+    'Az.Resources'                          = @{ Version = '9.0.0'; Exact = $true }
+    'Az.Storage'                            = @{ Version = '9.4.0'; Exact = $true }
+    'Microsoft.PowerShell.SecretManagement' = @{ Version = '1.1.2'; Exact = $true }
+    'Az.ConnectedMachine'                   = @{ Version = '0.0' }
+    'Az.ConnectedKubernetes'                = @{ Version = '0.0' }
+    'Az.CustomLocation'                     = @{ Version = '0.0' }
+    'Azure.Arc.Jumpstart.Common'            = @{ Version = '0.0' }
+    'Pester'                                = @{ Version = '5.0' }  # Windows ships Pester 3.4, the ArcBox tests need 5 or later
+}
+function Test-ModuleInstalled {
+    param([string]$Name, [hashtable]$Requirement)
+    $versions = @(Get-Module -ListAvailable -Name $Name | ForEach-Object Version)
+    if ($Requirement.Exact) { return [bool]($versions | Where-Object { $_ -eq [version]$Requirement.Version }) }
+    return [bool]($versions | Where-Object { $_ -ge [version]$Requirement.Version })
+}
+$missingModules = @()
+foreach ($module in $bootstrapModules.Keys) {
+    $requirement = $bootstrapModules[$module]
+    if (Test-ModuleInstalled -Name $module -Requirement $requirement) { continue }
+    Write-Host "PowerShell module $module is missing, installing it"
+    Install-PSResourceWithRetry -Name $module -Version $(if ($requirement.Exact) { $requirement.Version })
+    if (-not (Test-ModuleInstalled -Name $module -Requirement $requirement)) { $missingModules += $module }
+}
+
+# Clear or update the error tag left by Bootstrap.ps1
+$tags = Get-AzResourceGroup -Name $resourceGroup | Select-Object -ExpandProperty Tags
+if ($tags -and $tags.ContainsKey('ArcBoxModuleInstallErrors')) {
+    if ($missingModules.Count -eq 0) {
+        $tags.Remove('ArcBoxModuleInstallErrors')
+    } else {
+        $tags['ArcBoxModuleInstallErrors'] = "Still missing after WinGet.ps1 retry: $($missingModules -join ', ')"
+    }
+    $null = Set-AzResourceGroup -ResourceGroupName $resourceGroup -Tag $tags
+}
 
 # Update WinGet package manager to the latest version (running twice due to a known issue regarding WinAppSDK)
 Repair-WinGetPackageManager -AllUsers -Force -Latest -Verbose
@@ -114,7 +159,7 @@ if (-not (Get-Command bginfo.exe -ErrorAction SilentlyContinue)) {
 $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
 $requiredTools = @('az', 'azcopy')
 if ($env:flavor -in 'DevOps', 'DataOps') { $requiredTools += 'kubectl', 'helm' }
-$missingTools = @($requiredTools | Where-Object { -not (Get-Command $_ -ErrorAction SilentlyContinue) })
+$missingTools = @($requiredTools | Where-Object { -not (Get-Command $_ -ErrorAction SilentlyContinue) }) + $missingModules
 
 if ($missingTools.Count -gt 0) {
     $failureMessage = "Failed to install $($missingTools -join ', ')$(if ($failedConfigurations) { " ($($failedConfigurations -join ', ') did not apply)" }). Sign out and back in to the client VM to retry, see C:\ArcBox\Logs\WinGet-provisioning-*.log"
