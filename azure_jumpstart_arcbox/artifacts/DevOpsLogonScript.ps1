@@ -78,23 +78,23 @@ az account set -s $env:subscriptionId
 # Downloading ArcBox-K3s-data Kubernetes cluster kubeconfig file
 Write-Header "Downloading $namingPrefix-K3s-data K8s Kubeconfig"
 $sourceFile = "https://$Env:stagingStorageAccountName.blob.core.windows.net/$($Env:k3sArcDataClusterName.ToLower())/config"
-azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "C:\Users\$Env:USERNAME\.kube\config"
+$null = Invoke-NativeCommandWithRetry -Description "Downloading $sourceFile" { azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "C:\Users\$Env:USERNAME\.kube\config" }
 
 # Downloading ArcBox-K3s-data log file
 Write-Header "Downloading $namingPrefix-K3s-data Install Logs"
 $sourceFile = "https://$Env:stagingStorageAccountName.blob.core.windows.net/$($Env:k3sArcDataClusterName.ToLower())/*"
-azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "$Env:ArcBoxLogsDir\" --include-pattern "*.log"
+$null = Invoke-NativeCommandWithRetry -Description "Downloading $sourceFile" { azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "$Env:ArcBoxLogsDir\" --include-pattern "*.log" }
 
 # Downloading ArcBox-K3s cluster kubeconfig file
 Write-Header "Downloading $namingPrefix-K3s Kubeconfig"
 $sourceFile = "https://$Env:stagingStorageAccountName.blob.core.windows.net/$($Env:k3sArcClusterName.ToLower())/config"
-azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "C:\Users\$Env:USERNAME\.kube\config-k3s"
+$null = Invoke-NativeCommandWithRetry -Description "Downloading $sourceFile" { azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "C:\Users\$Env:USERNAME\.kube\config-k3s" }
 $Env:KUBECONFIG="C:\users\$Env:USERNAME\.kube\config"
 
 # Downloading ArcBox-K3s log file
 Write-Header "Downloading $namingPrefix-K3s Install Logs"
 $sourceFile = "https://$Env:stagingStorageAccountName.blob.core.windows.net/$($Env:k3sArcClusterName.ToLower())/*"
-azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "$Env:ArcBoxLogsDir\" --include-pattern "*.log"
+$null = Invoke-NativeCommandWithRetry -Description "Downloading $sourceFile" { azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "$Env:ArcBoxLogsDir\" --include-pattern "*.log" }
 
 Write-Header "Adding Tools Folder to PATH"
 [System.Environment]::SetEnvironmentVariable('PATH', $Env:PATH + ";$Env:ToolsDir" ,[System.EnvironmentVariableTarget]::Machine)

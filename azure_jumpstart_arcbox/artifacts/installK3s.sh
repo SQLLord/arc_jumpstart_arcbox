@@ -38,11 +38,22 @@ exec 2>&1
 # Set k3 deployment variables
 export K3S_VERSION="1.29.6+k3s2" # Do not change!
 
+# Downloads fail transiently, so retry a command up to 3 times with backoff
+retry() {
+    local attempt
+    for attempt in 1 2 3; do
+        "$@" && return 0
+        echo "Command failed (attempt $attempt of 3): $*"
+        if [[ $attempt -lt 3 ]]; then sleep $((30 * attempt)); fi
+    done
+    return 1
+}
+
 chmod +x vars.sh
 . ./vars.sh
 
 # Creating login message of the day (motd)
-sudo curl -v -o /etc/profile.d/welcomeK3s.sh ${templateBaseUrl}artifacts/welcomeK3s.sh
+retry sudo curl -sSf -o /etc/profile.d/welcomeK3s.sh ${templateBaseUrl}artifacts/welcomeK3s.sh
 
 # Syncing this script log to 'jumpstart_logs' directory for ease of troubleshooting
 sudo -u $adminUsername mkdir -p /home/${adminUsername}/jumpstart_logs
@@ -52,8 +63,7 @@ while sleep 1; do sudo -s rsync -a /var/lib/waagent/custom-script/download/0/ins
 echo ""
 echo "Downloading azcopy"
 echo ""
-wget -O azcopy.tar.gz https://aka.ms/downloadazcopy-v10-linux
-if [[ $? -ne 0 ]]; then
+if ! retry wget -O azcopy.tar.gz https://aka.ms/downloadazcopy-v10-linux; then
     echo "ERROR: Failed to download azcopy"
     exit 1
 fi
@@ -116,9 +126,9 @@ if [[ "$k3sControlPlane" == "true" ]]; then
     echo ""
     echo "Installing Azure Arc extensions"
     echo ""
-    sudo -u $adminUsername az extension add --name connectedk8s --version 1.9.3
-    sudo -u $adminUsername az extension add --name k8s-configuration
-    sudo -u $adminUsername az extension add --name k8s-extension
+    retry sudo -u $adminUsername az extension add --name connectedk8s --version 1.9.3
+    retry sudo -u $adminUsername az extension add --name k8s-configuration
+    retry sudo -u $adminUsername az extension add --name k8s-extension
 
     # Installing Rancher K3s cluster (single control plane)
     echo ""
@@ -127,8 +137,12 @@ if [[ "$k3sControlPlane" == "true" ]]; then
     publicIp=$(hostname -i)
     sudo mkdir ~/.kube
     sudo -u $adminUsername mkdir /home/${adminUsername}/.kube
-    curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="server --disable traefik --disable servicelb --node-ip ${publicIp} --node-external-ip ${publicIp} --bind-address ${publicIp} --tls-san ${publicIp}" INSTALL_K3S_VERSION=v${K3S_VERSION} K3S_KUBECONFIG_MODE="644" sh -
-    if [[ $? -ne 0 ]]; then
+    # Download the installer to a file first: piping a failed download into sh would report success
+    install_k3s_server() {
+        curl -sfL https://get.k3s.io -o /tmp/install-k3s.sh || return 1
+        INSTALL_K3S_EXEC="server --disable traefik --disable servicelb --node-ip ${publicIp} --node-external-ip ${publicIp} --bind-address ${publicIp} --tls-san ${publicIp}" INSTALL_K3S_VERSION=v${K3S_VERSION} K3S_KUBECONFIG_MODE="644" sh /tmp/install-k3s.sh
+    }
+    if ! retry install_k3s_server; then
         echo "ERROR: K3s installation failed"
         exit 1
     fi
@@ -145,8 +159,7 @@ if [[ "$k3sControlPlane" == "true" ]]; then
     echo ""
     echo "Installing Helm"
     echo ""
-    sudo snap install helm --classic
-    if [[ $? -ne 0 ]]; then
+    if ! retry sudo snap install helm --classic; then
         echo "ERROR: Helm installation failed"
         exit 1
     fi
@@ -166,9 +179,9 @@ if [[ "$k3sControlPlane" == "true" ]]; then
     echo "k3sNodeToken: $(sudo cat /var/lib/rancher/k3s/server/node-token)" >> $k3sClusterNodeConfig
     echo "k3sClusterIp: $publicIp" >> $k3sClusterNodeConfig
     # Copying kubeconfig file to staging storage account
-    azcopy make "https://$stagingStorageAccountName.blob.core.windows.net/$storageContainerName"
-    azcopy cp $localPath "https://$stagingStorageAccountName.blob.core.windows.net/$storageContainerName/config"
-    azcopy cp $k3sClusterNodeConfig "https://$stagingStorageAccountName.blob.core.windows.net/$storageContainerName/k3sClusterNodeConfig.yaml"
+    retry azcopy make "https://$stagingStorageAccountName.blob.core.windows.net/$storageContainerName"
+    retry azcopy cp $localPath "https://$stagingStorageAccountName.blob.core.windows.net/$storageContainerName/config"
+    retry azcopy cp $k3sClusterNodeConfig "https://$stagingStorageAccountName.blob.core.windows.net/$storageContainerName/k3sClusterNodeConfig.yaml"
 
         # Onboard the cluster to Azure Arc
     echo ""
@@ -258,7 +271,7 @@ else
     echo "Downloading k3s control plane details"
     echo ""
     k3sClusterNodeConfigYaml="k3sClusterNodeConfig.yaml"
-    azcopy cp --check-md5 FailIfDifferentOrMissing "https://$stagingStorageAccountName.blob.core.windows.net/$storageContainerName/$k3sClusterNodeConfigYaml" "/home/$adminUsername/$k3sClusterNodeConfigYaml"
+    retry azcopy cp --check-md5 FailIfDifferentOrMissing "https://$stagingStorageAccountName.blob.core.windows.net/$storageContainerName/$k3sClusterNodeConfigYaml" "/home/$adminUsername/$k3sClusterNodeConfigYaml"
 
     # Installing Rancher K3s cluster (single worker node)
     echo ""
@@ -266,8 +279,11 @@ else
     echo ""
     k3sNodeToken=$(grep 'k3sNodeToken' "/home/$adminUsername/$k3sClusterNodeConfigYaml" | awk '{print $2}')
     k3sClusterIp=$(grep 'k3sClusterIp' "/home/$adminUsername/$k3sClusterNodeConfigYaml" | awk '{print $2}')
-    curl -sfL https://get.k3s.io | K3S_URL=https://${k3sClusterIp}:6443 INSTALL_K3S_VERSION=v${K3S_VERSION} K3S_TOKEN=${k3sNodeToken} sh -
-    if [[ $? -ne 0 ]]; then
+    install_k3s_agent() {
+        curl -sfL https://get.k3s.io -o /tmp/install-k3s.sh || return 1
+        K3S_URL=https://${k3sClusterIp}:6443 INSTALL_K3S_VERSION=v${K3S_VERSION} K3S_TOKEN=${k3sNodeToken} sh /tmp/install-k3s.sh
+    }
+    if ! retry install_k3s_agent; then
         echo "ERROR: Failed to add k3s worker nodes"
         exit 1
     fi

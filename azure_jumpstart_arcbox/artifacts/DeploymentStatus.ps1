@@ -8,7 +8,7 @@ $Env:AZURE_STORAGE_CONNECTION_STRING ='BlobEndpoint=https://jumpstartusage.blob.
 Write-Host "`n"
 Write-Host "Adding Resource Graph Azure CLI extension"
 Write-Host "`n"
-az extension add --name "resource-graph" -y
+$null = Invoke-NativeCommandWithRetry -Description "Installing Azure CLI extension" { az extension add --name "resource-graph" -y }
 
 # Sending deployement status message to Azure storage account queue
 $arcNumResources = az graph query -q "Resources | where type =~ 'Microsoft.HybridCompute/machines' or type=~'Microsoft.Kubernetes/connectedClusters' or type=~'Microsoft.AzureArcData/SqlServerInstances' or type=~'Microsoft.AzureArcData/dataControllers' or type=~'Microsoft.AzureArcData/sqlManagedInstances' or type=~'Microsoft.AzureArcData/postgresInstances' | where resourceGroup=~'$Env:resourceGroup' | project name, location, resourceGroup, tags | summarize count()" | Select-String "count_"

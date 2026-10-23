@@ -7,7 +7,21 @@
     [string]$Azurelocation
 )
 
- function download() {$ProgressPreference="SilentlyContinue"; Invoke-WebRequest -Uri https://aka.ms/AzureConnectedMachineAgent -OutFile AzureConnectedMachineAgent.msi}
+ # Downloads fail transiently, so retry with backoff
+ function download() {
+     $ProgressPreference = "SilentlyContinue"
+     for ($attempt = 1; $attempt -le 3; $attempt++) {
+         try {
+             Invoke-WebRequest -Uri https://aka.ms/AzureConnectedMachineAgent -OutFile AzureConnectedMachineAgent.msi -UseBasicParsing -ErrorAction Stop
+             return
+         }
+         catch {
+             Write-Warning "Downloading the Azure Connected Machine agent failed (attempt $attempt of 3): $($_.Exception.Message)"
+             if ($attempt -eq 3) { throw "Could not download the Azure Connected Machine agent: $($_.Exception.Message)" }
+             Start-Sleep -Seconds (15 * $attempt)
+         }
+     }
+ }
  download
 
  # Install the package

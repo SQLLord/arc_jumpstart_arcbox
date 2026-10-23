@@ -80,10 +80,10 @@ $Env:AZDATA_PASSWORD = $AZDATA_PASSWORD
 Write-Header "Installing Azure CLI extensions"
 az config set extension.use_dynamic_install=yes_without_prompt
 # Installing Azure CLI extensions
-az extension add --name connectedk8s --version 1.9.3
-az extension add --name arcdata
-az extension add --name k8s-extension
-az extension add --name customlocation
+$null = Invoke-NativeCommandWithRetry -Description "Installing Azure CLI extension" { az extension add --name connectedk8s --version 1.9.3 }
+$null = Invoke-NativeCommandWithRetry -Description "Installing Azure CLI extension" { az extension add --name arcdata }
+$null = Invoke-NativeCommandWithRetry -Description "Installing Azure CLI extension" { az extension add --name k8s-extension }
+$null = Invoke-NativeCommandWithRetry -Description "Installing Azure CLI extension" { az extension add --name customlocation }
 az -v
 
 # Installing Azure Data Studio extensions
@@ -127,16 +127,16 @@ Write-Host "`n"
 # Downloading k3s Kubernetes cluster kubeconfig file
 Write-Header "Downloading k3s Kubeconfig"
 $sourceFile = "https://$Env:stagingStorageAccountName.blob.core.windows.net/$($Env:k3sArcDataClusterName.ToLower())/config"
-azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile "C:\Users\$Env:adminUsername\.kube\config-k3s-data"
-azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile "C:\Users\$Env:adminUsername\.kube\config"
+$null = Invoke-NativeCommandWithRetry -Description "Downloading $sourceFile" { azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile "C:\Users\$Env:adminUsername\.kube\config-k3s-data" }
+$null = Invoke-NativeCommandWithRetry -Description "Downloading $sourceFile" { azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile "C:\Users\$Env:adminUsername\.kube\config" }
 
 $addsDomainNetBiosName = $Env:addsDomainName.Split(".")[0]
-azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "C:\Users\$Env:adminUsername.$addsDomainNetBiosName\.kube\config"
+$null = Invoke-NativeCommandWithRetry -Description "Downloading $sourceFile" { azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "C:\Users\$Env:adminUsername.$addsDomainNetBiosName\.kube\config" }
 
 # Downloading 'installk3s.log' log file
 Write-Header "Downloading k3s Install Logs"
 $sourceFile = "https://$Env:stagingStorageAccountName.blob.core.windows.net/$($Env:k3sArcDataClusterName.ToLower())/*"
-azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "$Env:ArcBoxLogsDir\" --include-pattern "*.log"
+$null = Invoke-NativeCommandWithRetry -Description "Downloading $sourceFile" { azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "$Env:ArcBoxLogsDir\" --include-pattern "*.log" }
 
 Start-Sleep -Seconds 10
 

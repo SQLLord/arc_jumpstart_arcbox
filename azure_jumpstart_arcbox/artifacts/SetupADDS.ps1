@@ -17,14 +17,53 @@ $Env:ArcBoxLogsDir = "C:\ArcBox\Logs"
 
 Start-Transcript -Path "$Env:ArcBoxLogsDir\SetupADDS.log"
 
-Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
+# PowerShell Gallery downloads fail transiently (for example "No match was found" or 404 for a module that exists), so retry with backoff
+function Invoke-WithRetry {
+    param([string]$Description, [scriptblock]$ScriptBlock, [int]$MaxAttempts = 3)
+    for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+        try {
+            & $ScriptBlock
+            return $true
+        }
+        catch {
+            Write-Warning "$Description failed (attempt $attempt of $MaxAttempts): $($_.Exception.Message)"
+            if ($attempt -lt $MaxAttempts) { Start-Sleep -Seconds (30 * $attempt) }
+        }
+    }
+    return $false
+}
 
-Install-Module -Name Microsoft.PowerShell.PSResourceGet -Force
+$null = Invoke-WithRetry -Description 'Installing the NuGet package provider' -ScriptBlock { Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -ErrorAction Stop }
+
+$null = Invoke-WithRetry -Description 'Installing PowerShell module Microsoft.PowerShell.PSResourceGet' -ScriptBlock { Install-Module -Name Microsoft.PowerShell.PSResourceGet -Force -ErrorAction Stop }
+if (-not (Get-Module -ListAvailable -Name Microsoft.PowerShell.PSResourceGet)) {
+    # Fall back to downloading the package directly, which skips the Gallery search that fails
+    $null = Invoke-WithRetry -Description 'Downloading Microsoft.PowerShell.PSResourceGet directly' -ScriptBlock {
+        $nupkgPath = Join-Path $env:TEMP 'Microsoft.PowerShell.PSResourceGet.zip'
+        $extractPath = Join-Path $env:TEMP 'Microsoft.PowerShell.PSResourceGet'
+        Invoke-WebRequest -Uri 'https://www.powershellgallery.com/api/v2/package/Microsoft.PowerShell.PSResourceGet' -OutFile $nupkgPath -UseBasicParsing -ErrorAction Stop
+        Remove-Item -Path $extractPath -Recurse -Force -ErrorAction SilentlyContinue
+        Expand-Archive -Path $nupkgPath -DestinationPath $extractPath -Force
+        $moduleVersion = ([xml](Get-Content -Path (Join-Path $extractPath 'Microsoft.PowerShell.PSResourceGet.nuspec') -Raw)).package.metadata.version
+        Remove-Item -Path (Join-Path $extractPath '_rels'), (Join-Path $extractPath 'package'), (Join-Path $extractPath '*.nuspec'), (Join-Path $extractPath '`[Content_Types`].xml') -Recurse -Force -ErrorAction SilentlyContinue
+        $moduleDir = Join-Path $env:ProgramFiles "WindowsPowerShell\Modules\Microsoft.PowerShell.PSResourceGet\$moduleVersion"
+        New-Item -Path $moduleDir -ItemType Directory -Force | Out-Null
+        Copy-Item -Path (Join-Path $extractPath '*') -Destination $moduleDir -Recurse -Force
+    }
+}
+Import-Module Microsoft.PowerShell.PSResourceGet -ErrorAction SilentlyContinue
+if (-not (Get-Command Install-PSResource -ErrorAction SilentlyContinue)) {
+    throw "Microsoft.PowerShell.PSResourceGet could not be installed from the PowerShell Gallery. Check C:\ArcBox\Logs\SetupADDS.log and redeploy."
+}
 
 $modules = @("Az.KeyVault", "Azure.Arc.Jumpstart.Common", "Microsoft.PowerShell.SecretManagement", "Pester")
 
 foreach ($module in $modules) {
-    Install-PSResource -Name $module -Scope AllUsers -Quiet -AcceptLicense -TrustRepository
+    $installed = Invoke-WithRetry -Description "Installing PowerShell module $module" -ScriptBlock { Install-PSResource -Name $module -Scope AllUsers -Quiet -AcceptLicense -TrustRepository -ErrorAction Stop }
+    # The domain controller setup reads the Key Vault, so it cannot continue without these
+    if (-not $installed -and $module -in 'Az.KeyVault', 'Microsoft.PowerShell.SecretManagement') {
+        throw "Could not install PowerShell module $module from the PowerShell Gallery. Check C:\ArcBox\Logs\SetupADDS.log and redeploy."
+    }
 }
 
 # Connect to Azure using Managed Identity

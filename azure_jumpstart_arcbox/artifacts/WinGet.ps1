@@ -140,7 +140,7 @@ if (-not (Get-Command bginfo.exe -ErrorAction SilentlyContinue)) {
     $bgInfoDir = 'C:\Tools\BGInfo'
     $bgInfoZip = Join-Path $env:TEMP 'BGInfo.zip'
     try {
-        Invoke-WebRequest -Uri 'https://download.sysinternals.com/files/BGInfo.zip' -OutFile $bgInfoZip -UseBasicParsing
+        Invoke-WebRequestWithRetry -Uri 'https://download.sysinternals.com/files/BGInfo.zip' -OutFile $bgInfoZip
         Expand-Archive -Path $bgInfoZip -DestinationPath $bgInfoDir -Force
         Copy-Item -Path (Join-Path $bgInfoDir 'Bginfo64.exe') -Destination (Join-Path $bgInfoDir 'bginfo.exe') -Force
 

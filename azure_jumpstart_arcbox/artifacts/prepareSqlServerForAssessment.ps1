@@ -1,6 +1,16 @@
 #  This script introduces some addtional SQL server features that are supported only on IaaS, some on both IaaS and SQL MI
-Install-PackageProvider -Name NuGet -Force
-Install-Module -Name SqlServer -AllowClobber -Force -Scope AllUsers
+# PowerShell Gallery downloads fail transiently, so retry with backoff
+for ($attempt = 1; $attempt -le 3; $attempt++) {
+    try {
+        Install-PackageProvider -Name NuGet -Force -ErrorAction Stop
+        Install-Module -Name SqlServer -AllowClobber -Force -Scope AllUsers -ErrorAction Stop
+        break
+    }
+    catch {
+        Write-Warning "Installing the SqlServer PowerShell module failed (attempt $attempt of 3): $($_.Exception.Message)"
+        if ($attempt -lt 3) { Start-Sleep -Seconds (30 * $attempt) }
+    }
+}
 Import-Module -Name SqlServer -Force -PassThru
 
 $sqlInstance = "MSSQLSERVER"

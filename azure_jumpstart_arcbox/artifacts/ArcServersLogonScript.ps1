@@ -137,7 +137,13 @@ if ($Env:flavor -ne 'DevOps') {
 
     @('ssh', 'log-analytics-solution', 'connectedmachine', 'monitor-control-service') |
     ForEach-Object -Parallel {
-        az extension add --name $PSItem --yes --only-show-errors
+        # Parallel runspaces do not load the profile, so retry inline
+        for ($attempt = 1; $attempt -le 3; $attempt++) {
+            az extension add --name $PSItem --yes --only-show-errors
+            if ($LASTEXITCODE -eq 0) { break }
+            Write-Warning "Installing Azure CLI extension $PSItem failed (attempt $attempt of 3)"
+            if ($attempt -lt 3) { Start-Sleep -Seconds (30 * $attempt) }
+        }
     }
 
     # Required for CLI commands
@@ -243,7 +249,9 @@ if ($Env:flavor -ne 'DevOps') {
     # Verify if VHD files already downloaded especially when re-running this script
     if (!(Test-Path $SQLvmvhdPath)) {
         Write-Output 'Downloading nested VMs VHDX file for SQL. This can take some time, hold tight...'
-        azcopy cp $vhdSourceFolder $SQLvmDir --include-pattern "$vhdImageToDownload" --recursive=true --check-length=false --log-level=ERROR
+        $null = Invoke-NativeCommandWithRetry -Description "Downloading $vhdImageToDownload" -DelaySeconds 60 {
+            azcopy cp $vhdSourceFolder $SQLvmDir --include-pattern "$vhdImageToDownload" --recursive=true --check-length=false --log-level=ERROR
+        }
 
         # Rename VHD file
         Rename-Item -Path "$SQLvmDir\$vhdImageToDownload" -NewName $SQLvmvhdPath -Force
@@ -261,7 +269,10 @@ if ($Env:flavor -ne 'DevOps') {
     $sqlDscConfigurationFile = "$Env:ArcBoxDscDir\virtual_machines_sql.dsc.yml"
     (Get-Content -Path $sqlDscConfigurationFile) -replace 'namingPrefixStage', $namingPrefix | Set-Content -Path $sqlDscConfigurationFile
     Update-NestedVmDscPaths -Path $sqlDscConfigurationFile
-    winget configure --file C:\ArcBox\DSC\virtual_machines_sql.dsc.yml --accept-configuration-agreements --disable-interactivity
+    # Re-applying is safe: units already in the desired state are skipped
+    $null = Invoke-NativeCommandWithRetry -Description 'WinGet configuration virtual_machines_sql.dsc.yml' -DelaySeconds 60 {
+        winget configure --file C:\ArcBox\DSC\virtual_machines_sql.dsc.yml --accept-configuration-agreements --disable-interactivity
+    }
 
     # Restarting Windows VM Network Adapters
     Write-Host 'Restarting Network Adapters'
@@ -295,9 +306,11 @@ if ($Env:flavor -ne 'DevOps') {
     Invoke-Command -VMName $SQLvmName -ScriptBlock { New-NetFirewallRule -DisplayName 'Allow SQL Server TCP 1433' -Direction Inbound -Protocol TCP -LocalPort 1433 -Action Allow } -Credential $winCreds
 
     # Download SQL assessment preparation script
-    Invoke-WebRequest ($Env:templateBaseUrl + 'artifacts/prepareSqlServerForAssessment.ps1') -OutFile $nestedVMArcBoxDir\prepareSqlServerForAssessment.ps1
-    Copy-VMFile $SQLvmName -SourcePath "$Env:ArcBoxDir\prepareSqlServerForAssessment.ps1" -DestinationPath "$nestedVMArcBoxDir\prepareSqlServerForAssessment.ps1" -CreateFullPath -FileSource Host -Force
-    Invoke-Command -VMName $SQLvmName -ScriptBlock { powershell -File $Using:nestedVMArcBoxDir\prepareSqlServerForAssessment.ps1 } -Credential $winCreds
+    Invoke-WebRequestWithRetry ($Env:templateBaseUrl + 'artifacts/prepareSqlServerForAssessment.ps1') -OutFile $nestedVMArcBoxDir\prepareSqlServerForAssessment.ps1 -Optional
+    if (Test-Path "$Env:ArcBoxDir\prepareSqlServerForAssessment.ps1") {
+        Copy-VMFile $SQLvmName -SourcePath "$Env:ArcBoxDir\prepareSqlServerForAssessment.ps1" -DestinationPath "$nestedVMArcBoxDir\prepareSqlServerForAssessment.ps1" -CreateFullPath -FileSource Host -Force
+        Invoke-Command -VMName $SQLvmName -ScriptBlock { powershell -File $Using:nestedVMArcBoxDir\prepareSqlServerForAssessment.ps1 } -Credential $winCreds
+    }
 
     # Copy installation script to nested Windows VMs
     Write-Output 'Transferring installation script to nested Windows VMs...'
@@ -406,7 +419,7 @@ if ($Env:flavor -ne 'DevOps') {
         $sqlExtensionId = "/subscriptions/$subscriptionId/resourceGroups/$resourceGroup/providers/Microsoft.HybridCompute/machines/$SQLvmName/extensions/WindowsAgent.SqlServer"
         $sqlbpaPayloadTemplate = "$Env:templateBaseUrl/artifacts/sqlbpa.payload.json"
         $settingsSaveTime = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
-        $apiPayload = (Invoke-WebRequest -Uri $sqlbpaPayloadTemplate).Content -replace '{{RESOURCEID}}', $sqlExtensionId -replace '{{LOCATION}}', $azureLocation -replace '{{WORKSPACEID}}', $worspaceResourceId -replace '{{SAVETIME}}', $settingsSaveTime
+        $apiPayload = (Invoke-WebRequestWithRetry -Uri $sqlbpaPayloadTemplate -Optional).Content -replace '{{RESOURCEID}}', $sqlExtensionId -replace '{{LOCATION}}', $azureLocation -replace '{{WORKSPACEID}}', $worspaceResourceId -replace '{{SAVETIME}}', $settingsSaveTime
 
         # Call REST API to run best practices assessment
         $httpResp = Invoke-WebRequest -Method Patch -Uri $armRestApiEndpoint -Body $apiPayload -Headers $headers
@@ -514,7 +527,9 @@ if ($Env:flavor -ne 'DevOps') {
             }
 
             Write-Output "Downloading $($nestedVm.SourceFile) to $($nestedVm.Dir). This can take some time, hold tight..."
-            azcopy cp $vhdSourceFolder $nestedVm.Dir --include-pattern $nestedVm.SourceFile --recursive=true --check-length=false --log-level=ERROR
+            $null = Invoke-NativeCommandWithRetry -Description "Downloading $($nestedVm.SourceFile)" -DelaySeconds 60 {
+                azcopy cp $vhdSourceFolder $nestedVm.Dir --include-pattern $nestedVm.SourceFile --recursive=true --check-length=false --log-level=ERROR
+            }
 
             # Rename to the nested VM name when using a custom naming prefix
             $downloadedFile = Join-Path -Path $nestedVm.Dir -ChildPath $nestedVm.SourceFile
@@ -531,7 +546,9 @@ if ($Env:flavor -ne 'DevOps') {
         $serversDscConfigurationFile = "$Env:ArcBoxDscDir\virtual_machines_itpro.dsc.yml"
         (Get-Content -Path $serversDscConfigurationFile) -replace 'namingPrefixStage', $namingPrefix | Set-Content -Path $serversDscConfigurationFile
         Update-NestedVmDscPaths -Path $serversDscConfigurationFile
-        winget configure --file C:\ArcBox\DSC\virtual_machines_itpro.dsc.yml --accept-configuration-agreements --disable-interactivity
+        $null = Invoke-NativeCommandWithRetry -Description 'WinGet configuration virtual_machines_itpro.dsc.yml' -DelaySeconds 60 {
+            winget configure --file C:\ArcBox\DSC\virtual_machines_itpro.dsc.yml --accept-configuration-agreements --disable-interactivity
+        }
 
     # Configure automatic start & stop action for the nested VMs
     # A guest can ignore the shutdown request (for example while still finishing its first boot) and Stop-VM then waits forever.

@@ -5,11 +5,14 @@ sudo ufw --force enable
 sudo ufw deny out from any to 169.254.169.254
 sudo ufw default allow incoming
 
-# Download the installation package
-wget https://aka.ms/azcmagent -O ~/install_linux_azcmagent.sh # 2>/dev/null
-
-# Install the hybrid agent
-bash ~/install_linux_azcmagent.sh # 2>/dev/null
+# Download the installation package and install the hybrid agent, retrying transient download failures
+for attempt in 1 2 3; do
+    if wget https://aka.ms/azcmagent -O ~/install_linux_azcmagent.sh && bash ~/install_linux_azcmagent.sh; then
+        break
+    fi
+    echo "Installing the Azure Connected Machine agent failed (attempt $attempt of 3)"
+    if [ "$attempt" -lt 3 ]; then sleep $((30 * attempt)); fi
+done
 
 ArcServerResourceName=$(hostname |sed -e "s/\b\(.\)/\u\1/g")
 
