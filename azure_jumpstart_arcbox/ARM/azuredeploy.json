@@ -10634,7 +10634,7 @@
                 "name": "[parameters('bastionSku')]"
               },
               "properties": {
-                "enableTunneling": "[if(variables('enableNativeClient'), true(), null())]",
+                "enableTunneling": "[variables('enableNativeClient')]",
                 "virtualNetwork": "[if(equals(parameters('bastionSku'), 'Developer'), createObject('id', parameters('vnetId')), null())]",
                 "ipConfigurations": "[if(not(equals(parameters('bastionSku'), 'Developer')), createArray(createObject('name', 'IpConf', 'properties', createObject('publicIPAddress', createObject('id', resourceId('Microsoft.Network/publicIPAddresses', variables('bastionPublicIpAddressName'))), 'subnet', createObject('id', variables('bastionSubnetRef'))))), null())]"
               },

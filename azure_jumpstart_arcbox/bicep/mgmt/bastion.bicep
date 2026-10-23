@@ -44,7 +44,7 @@ resource bastionHost 'Microsoft.Network/bastionHosts@2024-05-01' = {
     name: bastionSku
   }
   properties: {
-    enableTunneling: enableNativeClient ? true : null
+    enableTunneling: enableNativeClient
     virtualNetwork: bastionSku == 'Developer'
       ? {
           id: vnetId
