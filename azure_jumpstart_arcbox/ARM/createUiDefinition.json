@@ -127,10 +127,31 @@
         "label": "Client VM",
         "elements": [
           {
+            "name": "vmsDiskSku",
+            "type": "Microsoft.Common.OptionsGroup",
+            "label": "Data disk type",
+            "defaultValue": "Premium SSD v2",
+            "toolTip": "Premium SSD v2 allows one disk per nested VM and provisioned IOPS. Choose Premium SSD in regions without Premium SSD v2 (for example some Azure Government regions); it uses one shared 512 GB disk.",
+            "constraints": {
+              "allowedValues": [
+                {
+                  "label": "Premium SSD v2",
+                  "value": "PremiumV2_LRS"
+                },
+                {
+                  "label": "Premium SSD",
+                  "value": "Premium_LRS"
+                }
+              ],
+              "required": true
+            }
+          },
+          {
             "name": "nestedVmDiskLayout",
             "type": "Microsoft.Common.OptionsGroup",
             "label": "Nested VM disks",
             "defaultValue": "One shared disk",
+            "visible": "[equals(steps('vm').vmsDiskSku, 'PremiumV2_LRS')]",
             "toolTip": "One shared disk: all nested VM VHDX files on one data disk. One disk per nested VM: an extra Premium SSD v2 data disk for each nested VM, so they do not compete for IOPS. Total disk performance is still capped by the client VM size.",
             "constraints": {
               "allowedValues": [
@@ -371,7 +392,7 @@
                 "Standard_E64s_v7"
               ]
             },
-            "visible": "[not(equals(steps('vm').nestedVmDiskLayout, 'PerVM'))]"
+            "visible": "[not(and(equals(steps('vm').vmsDiskSku, 'PremiumV2_LRS'), equals(steps('vm').nestedVmDiskLayout, 'PerVM')))]"
           },
           {
             "name": "clientVmSizePerVm",
@@ -521,7 +542,7 @@
                 "Standard_E64s_v7"
               ]
             },
-            "visible": "[equals(steps('vm').nestedVmDiskLayout, 'PerVM')]"
+            "visible": "[and(equals(steps('vm').vmsDiskSku, 'PremiumV2_LRS'), equals(steps('vm').nestedVmDiskLayout, 'PerVM'))]"
           },
           {
             "name": "nestedVmDiskSizeGB",
@@ -533,7 +554,7 @@
             "step": 32,
             "defaultValue": 128,
             "showStepMarkers": false,
-            "visible": "[equals(steps('vm').nestedVmDiskLayout, 'PerVM')]",
+            "visible": "[and(equals(steps('vm').vmsDiskSku, 'PremiumV2_LRS'), equals(steps('vm').nestedVmDiskLayout, 'PerVM'))]",
             "toolTip": "Size of each per-VM data disk (largest VHDX, SQL, is about 58 GB). Capped below the 256 GB shared VMs disk.",
             "constraints": {
               "required": true
@@ -549,7 +570,7 @@
             "step": 1000,
             "defaultValue": 3000,
             "showStepMarkers": false,
-            "visible": "[equals(steps('vm').nestedVmDiskLayout, 'PerVM')]",
+            "visible": "[and(equals(steps('vm').vmsDiskSku, 'PremiumV2_LRS'), equals(steps('vm').nestedVmDiskLayout, 'PerVM'))]",
             "toolTip": "Premium SSD v2 includes 3000 IOPS per disk at no extra charge. Max 500 IOPS per GB of disk size.",
             "constraints": {
               "required": true
@@ -565,7 +586,7 @@
             "step": 25,
             "defaultValue": 125,
             "showStepMarkers": false,
-            "visible": "[equals(steps('vm').nestedVmDiskLayout, 'PerVM')]",
+            "visible": "[and(equals(steps('vm').vmsDiskSku, 'PremiumV2_LRS'), equals(steps('vm').nestedVmDiskLayout, 'PerVM'))]",
             "toolTip": "Premium SSD v2 includes 125 MB/s per disk at no extra charge. Max 0.25 MB/s per IOPS.",
             "constraints": {
               "required": true
@@ -578,7 +599,7 @@
             "readOnly": true,
             "defaultValue": "Checked against the selected VM size",
             "toolTip": "Adds up the provisioned IOPS and throughput of every disk on the client VM: OS disk (500 IOPS / 100 MB/s), shared VMs disk (3000 IOPS / 125 MB/s) and one per-VM disk per nested VM (5 for ITPro, 1 for DataOps), and compares them with the VM size limits.",
-            "visible": "[equals(steps('vm').nestedVmDiskLayout, 'PerVM')]",
+            "visible": "[and(equals(steps('vm').vmsDiskSku, 'PremiumV2_LRS'), equals(steps('vm').nestedVmDiskLayout, 'PerVM'))]",
             "constraints": {
               "required": false,
               "validations": [
@@ -610,6 +631,7 @@
             "type": "Microsoft.Common.DropDown",
             "label": "Availability zone",
             "defaultValue": "1",
+            "toolTip": "Choose No zone in regions without availability zones, such as US Gov Arizona.",
             "constraints": {
               "allowedValues": [
                 {
@@ -623,6 +645,10 @@
                 {
                   "label": "3",
                   "value": "3"
+                },
+                {
+                  "label": "No zone (region without availability zones)",
+                  "value": "None"
                 }
               ],
               "required": true
@@ -844,11 +870,12 @@
       "windowsAdminUsername": "[basics('windowsAdminUsername')]",
       "windowsAdminPassword": "[basics('windowsAdminPassword')]",
       "sshRSAPublicKey": "[if(not(equals(basics('flavor'), 'ITPro')), basics('sshRSAPublicKey'), '')]",
-      "nestedVmDiskLayout": "[steps('vm').nestedVmDiskLayout]",
-      "nestedVmDiskSizeGB": "[if(equals(steps('vm').nestedVmDiskLayout, 'PerVM'), steps('vm').nestedVmDiskSizeGB, 128)]",
-      "nestedVmDiskIOPS": "[if(equals(steps('vm').nestedVmDiskLayout, 'PerVM'), steps('vm').nestedVmDiskIOPS, 3000)]",
-      "nestedVmDiskMBps": "[if(equals(steps('vm').nestedVmDiskLayout, 'PerVM'), steps('vm').nestedVmDiskMBps, 125)]",
-      "zones": "[steps('vm').zones]",
+      "vmsDiskSku": "[steps('vm').vmsDiskSku]",
+      "nestedVmDiskLayout": "[if(equals(steps('vm').vmsDiskSku, 'PremiumV2_LRS'), steps('vm').nestedVmDiskLayout, 'Shared')]",
+      "nestedVmDiskSizeGB": "[if(and(equals(steps('vm').vmsDiskSku, 'PremiumV2_LRS'), equals(steps('vm').nestedVmDiskLayout, 'PerVM')), steps('vm').nestedVmDiskSizeGB, 128)]",
+      "nestedVmDiskIOPS": "[if(and(equals(steps('vm').vmsDiskSku, 'PremiumV2_LRS'), equals(steps('vm').nestedVmDiskLayout, 'PerVM')), steps('vm').nestedVmDiskIOPS, 3000)]",
+      "nestedVmDiskMBps": "[if(and(equals(steps('vm').vmsDiskSku, 'PremiumV2_LRS'), equals(steps('vm').nestedVmDiskLayout, 'PerVM')), steps('vm').nestedVmDiskMBps, 125)]",
+      "zones": "[if(equals(steps('vm').zones, 'None'), '', steps('vm').zones)]",
       "enableAzureSpotPricing": "[steps('vm').enableAzureSpotPricing]",
       "vmAutologon": "[steps('vm').vmAutologon]",
       "autoShutdownEnabled": "[steps('vm').autoShutdownEnabled]",
@@ -868,7 +895,7 @@
       "debugEnabled": "[steps('advanced').debugEnabled]",
       "vhdStorageAccountName": "[if(equals(steps('advanced').vhdSource, 'StorageAccount'), steps('advanced').vhdStorageAccount.name, '')]",
       "vhdStorageAccountResourceGroup": "[if(equals(steps('advanced').vhdSource, 'StorageAccount'), first(skip(split(steps('advanced').vhdStorageAccount.id, '/'), 4)), '')]",
-      "clientVmSize": "[if(equals(steps('vm').nestedVmDiskLayout, 'PerVM'), steps('vm').clientVmSizePerVm, steps('vm').clientVmSizeShared)]"
+      "clientVmSize": "[if(and(equals(steps('vm').vmsDiskSku, 'PremiumV2_LRS'), equals(steps('vm').nestedVmDiskLayout, 'PerVM')), steps('vm').clientVmSizePerVm, steps('vm').clientVmSizeShared)]"
     }
   }
 }

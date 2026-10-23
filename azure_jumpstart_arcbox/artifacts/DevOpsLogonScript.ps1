@@ -59,7 +59,7 @@ if (Test-Path $registryPath) {
 }
 
 # Required for azcopy and Get-AzResource
-Connect-AzAccount -Identity -Tenant $env:tenantId -Subscription $env:subscriptionId
+Connect-AzAccount -Identity -Environment $Env:azureEnvironment -Tenant $env:tenantId -Subscription $env:subscriptionId
 
 $cliDir = New-Item -Path "$Env:ArcBoxDir\.cli\" -Name ".devops" -ItemType Directory
 
@@ -72,28 +72,29 @@ $Env:AZURE_CONFIG_DIR = $cliDir.FullName
 
 # Required for CLI commands
 Write-Header "Az CLI Login"
+az cloud set --name $Env:azureEnvironment
 az login --identity
 az account set -s $env:subscriptionId
 
 # Downloading ArcBox-K3s-data Kubernetes cluster kubeconfig file
 Write-Header "Downloading $namingPrefix-K3s-data K8s Kubeconfig"
-$sourceFile = "https://$Env:stagingStorageAccountName.blob.core.windows.net/$($Env:k3sArcDataClusterName.ToLower())/config"
+$sourceFile = "https://$Env:stagingStorageAccountName.blob.$((Get-AzContext).Environment.StorageEndpointSuffix)/$($Env:k3sArcDataClusterName.ToLower())/config"
 $null = Invoke-NativeCommandWithRetry -Description "Downloading $sourceFile" { azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "C:\Users\$Env:USERNAME\.kube\config" }
 
 # Downloading ArcBox-K3s-data log file
 Write-Header "Downloading $namingPrefix-K3s-data Install Logs"
-$sourceFile = "https://$Env:stagingStorageAccountName.blob.core.windows.net/$($Env:k3sArcDataClusterName.ToLower())/*"
+$sourceFile = "https://$Env:stagingStorageAccountName.blob.$((Get-AzContext).Environment.StorageEndpointSuffix)/$($Env:k3sArcDataClusterName.ToLower())/*"
 $null = Invoke-NativeCommandWithRetry -Description "Downloading $sourceFile" { azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "$Env:ArcBoxLogsDir\" --include-pattern "*.log" }
 
 # Downloading ArcBox-K3s cluster kubeconfig file
 Write-Header "Downloading $namingPrefix-K3s Kubeconfig"
-$sourceFile = "https://$Env:stagingStorageAccountName.blob.core.windows.net/$($Env:k3sArcClusterName.ToLower())/config"
+$sourceFile = "https://$Env:stagingStorageAccountName.blob.$((Get-AzContext).Environment.StorageEndpointSuffix)/$($Env:k3sArcClusterName.ToLower())/config"
 $null = Invoke-NativeCommandWithRetry -Description "Downloading $sourceFile" { azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "C:\Users\$Env:USERNAME\.kube\config-k3s" }
 $Env:KUBECONFIG="C:\users\$Env:USERNAME\.kube\config"
 
 # Downloading ArcBox-K3s log file
 Write-Header "Downloading $namingPrefix-K3s Install Logs"
-$sourceFile = "https://$Env:stagingStorageAccountName.blob.core.windows.net/$($Env:k3sArcClusterName.ToLower())/*"
+$sourceFile = "https://$Env:stagingStorageAccountName.blob.$((Get-AzContext).Environment.StorageEndpointSuffix)/$($Env:k3sArcClusterName.ToLower())/*"
 $null = Invoke-NativeCommandWithRetry -Description "Downloading $sourceFile" { azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "$Env:ArcBoxLogsDir\" --include-pattern "*.log" }
 
 Write-Header "Adding Tools Folder to PATH"

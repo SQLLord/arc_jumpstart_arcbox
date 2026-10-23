@@ -38,7 +38,9 @@ param (
     [string]$keyVaultName,
     [string]$vhdSourceUrl,
     [string]$vhdSourceAuth,
-    [string]$nestedVmDisks
+    [string]$nestedVmDisks,
+    # Azure cloud name (AzureCloud, AzureUSGovernment, ...) used for Azure sign-ins and Arc onboarding
+    [string]$azureEnvironment = 'AzureCloud'
 )
 
 [System.Environment]::SetEnvironmentVariable('adminUsername', $adminUsername, [System.EnvironmentVariableTarget]::Machine)
@@ -77,6 +79,7 @@ param (
 [System.Environment]::SetEnvironmentVariable('vhdSourceUrl', $vhdSourceUrl, [System.EnvironmentVariableTarget]::Machine)
 [System.Environment]::SetEnvironmentVariable('vhdSourceAuth', $vhdSourceAuth, [System.EnvironmentVariableTarget]::Machine)
 [System.Environment]::SetEnvironmentVariable('nestedVmDisks', $nestedVmDisks, [System.EnvironmentVariableTarget]::Machine)
+[System.Environment]::SetEnvironmentVariable('azureEnvironment', $azureEnvironment, [System.EnvironmentVariableTarget]::Machine)
 
 if ($debugEnabled -eq "true") {
     [System.Environment]::SetEnvironmentVariable('ErrorActionPreference', "Break", [System.EnvironmentVariableTarget]::Machine)
@@ -275,7 +278,7 @@ Import-Module Az.Resources -RequiredVersion 9.0.0 -Force
 
 $DeploymentProgressString = "Started bootstrap-script..."
 
-Connect-AzAccount -Identity
+Connect-AzAccount -Identity -Environment $azureEnvironment
 
 $tags = Get-AzResourceGroup -Name $resourceGroup | Select-Object -ExpandProperty Tags
 
@@ -337,7 +340,7 @@ if ($vmAutologon -eq "true") {
 if ($autoShutdownEnabled -eq "true") {
 
     $ScheduleResource = Get-AzResource -ResourceGroup $resourceGroup -ResourceType Microsoft.DevTestLab/schedules
-    $Uri = "https://management.azure.com$($ScheduleResource.ResourceId)?api-version=2018-09-15"
+    $Uri = "$((Get-AzContext).Environment.ResourceManagerUrl.TrimEnd('/'))$($ScheduleResource.ResourceId)?api-version=2018-09-15"
 
     $Schedule = Invoke-AzRestMethod -Uri $Uri
 

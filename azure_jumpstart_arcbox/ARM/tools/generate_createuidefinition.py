@@ -88,7 +88,9 @@ def build_ui_definition(caps):
                    and caps[n][1] >= BASE_MBPS + ITPRO_NESTED_VMS * PERVM_DEFAULT_MBPS]
 
     VM, NET, ADV = "steps('vm')", "steps('network')", "steps('advanced')"
-    IS_PERVM = f"equals({VM}.nestedVmDiskLayout, 'PerVM')"
+    # One disk per nested VM needs Premium SSD v2 (provisioned IOPS/throughput)
+    IS_PREMIUM_V2 = f"equals({VM}.vmsDiskSku, 'PremiumV2_LRS')"
+    IS_PERVM = f"and({IS_PREMIUM_V2}, equals({VM}.nestedVmDiskLayout, 'PerVM'))"
     OWN_VHD_STORAGE = f"equals({ADV}.vhdSource, 'StorageAccount')"
     PERVM_SIZE = f'{VM}.clientVmSizePerVm'
     NESTED_VM_COUNT = "if(equals(basics('flavor'), 'ITPro'), 5, if(equals(basics('flavor'), 'DataOps'), 1, 0))"
@@ -144,7 +146,12 @@ def build_ui_definition(caps):
     ]
 
     vm = [
+        el(name='vmsDiskSku', type='Microsoft.Common.OptionsGroup', label='Data disk type', defaultValue='Premium SSD v2',
+           toolTip='Premium SSD v2 allows one disk per nested VM and provisioned IOPS. Choose Premium SSD in regions without Premium SSD v2 (for example some Azure Government regions); it uses one shared 512 GB disk.',
+           constraints=OD(allowedValues=[OD(label='Premium SSD v2', value='PremiumV2_LRS'),
+                                         OD(label='Premium SSD', value='Premium_LRS')], required=True)),
         el(name='nestedVmDiskLayout', type='Microsoft.Common.OptionsGroup', label='Nested VM disks', defaultValue='One shared disk',
+           visible=f'[{IS_PREMIUM_V2}]',
            toolTip='One shared disk: all nested VM VHDX files on one data disk. One disk per nested VM: an extra Premium SSD v2 data disk for each nested VM, so they do not compete for IOPS. Total disk performance is still capped by the client VM size.',
            constraints=OD(allowedValues=[OD(label='One shared disk', value='Shared'),
                                          OD(label='One disk per nested VM', value='PerVM')], required=True)),
@@ -188,7 +195,9 @@ def build_ui_definition(caps):
                   message='The disks add up to more throughput (MB/s) than the selected VM size supports. Lower the per-VM disk throughput or choose a larger VM size.'),
            ])),
         el(name='zones', type='Microsoft.Common.DropDown', label='Availability zone', defaultValue='1',
-           constraints=OD(allowedValues=[OD(label=z, value=z) for z in ('1', '2', '3')], required=True)),
+           toolTip='Choose No zone in regions without availability zones, such as US Gov Arizona.',
+           constraints=OD(allowedValues=[OD(label=z, value=z) for z in ('1', '2', '3')]
+                          + [OD(label='No zone (region without availability zones)', value='None')], required=True)),
         el(name='enableAzureSpotPricing', type='Microsoft.Common.CheckBox', label='Use Azure Spot pricing for the client VM'),
         el(name='vmAutologon', type='Microsoft.Common.CheckBox', defaultValue=True,
            label='Enable autologon (runs the setup scripts automatically after reboot)'),
@@ -260,6 +269,7 @@ def build_ui_definition(caps):
     # Hidden fields send the template default instead of relying on the portal's value for hidden elements
     hidden_defaults = {
         'sshRSAPublicKey': ("not(equals(basics('flavor'), 'ITPro'))", "basics('sshRSAPublicKey')", "''"),
+        'nestedVmDiskLayout': (IS_PREMIUM_V2, f'{VM}.nestedVmDiskLayout', "'Shared'"),
         'nestedVmDiskSizeGB': (IS_PERVM, f'{VM}.nestedVmDiskSizeGB', '128'),
         'nestedVmDiskIOPS': (IS_PERVM, f'{VM}.nestedVmDiskIOPS', str(PERVM_DEFAULT_IOPS)),
         'nestedVmDiskMBps': (IS_PERVM, f'{VM}.nestedVmDiskMBps', str(PERVM_DEFAULT_MBPS)),
@@ -278,6 +288,8 @@ def build_ui_definition(caps):
     # One template parameter fed by whichever size selector is visible; the check box is UI only
     for name in ('clientVmSizeShared', 'clientVmSizePerVm', 'diskPerformanceCheck', 'vhdSource', 'vhdStorageAccount'):
         del outputs[name]
+    # The portal can treat an empty dropdown value as unselected, so the form uses 'None' and sends the template's empty value
+    outputs['zones'] = f"[if(equals({VM}.zones, 'None'), '', {VM}.zones)]"
     outputs['clientVmSize'] = f'[if({IS_PERVM}, {VM}.clientVmSizePerVm, {VM}.clientVmSizeShared)]'
 
     ui = OD()

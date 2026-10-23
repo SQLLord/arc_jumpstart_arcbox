@@ -26,6 +26,20 @@ The button opens the ArcBox deployment form in the Azure portal. Compared with a
 - **Nested VM image source** (Advanced tab): the public Jumpstart storage by default, which works in any subscription, or a storage account in the deployment subscription that holds your own copy of the VHDX files. The form lists the subscription's storage accounts, and the deployment grants the client VM read access to the one you pick, so it does not need anonymous access.
 - **Networking options**: NAT Gateway for outbound internet access (for environments where policy blocks default outbound access), a private endpoint for the Key Vault (for environments where policy disables public network access on Key Vaults) and Azure Bastion.
 
+### Azure Government
+
+Deploy to Azure Government with the same form from the Government portal:
+
+[![Deploy to Azure Government](https://aka.ms/deploytoazuregovbutton)](https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FSQLLord%2Farc_jumpstart_arcbox%2Fmaster%2Fazure_jumpstart_arcbox%2FARM%2Fazuredeploy.json/createUIDefinitionUri/https%3A%2F%2Fraw.githubusercontent.com%2FSQLLord%2Farc_jumpstart_arcbox%2Fmaster%2Fazure_jumpstart_arcbox%2FARM%2FcreateUiDefinition.json)
+
+The template and scripts detect the cloud and sign in, onboard Azure Arc and call Azure Resource Manager there. When choosing options:
+
+- **Region:** use **US Gov Virginia** for the ITPro flavor. It is the only Azure Government region with [SQL Server enabled by Azure Arc](https://learn.microsoft.com/sql/sql-server/azure-arc/us-government-region), and only some of its features are available there.
+- **Data disk type:** choose **Premium SSD** if the region does not offer Premium SSD v2. Premium SSD always uses one shared disk.
+- **Availability zone:** choose **No zone** in regions without availability zones, such as US Gov Arizona.
+- **Client VM size:** v7 sizes may not be offered in Azure Government; the size picker only lists sizes available in the selected region.
+- Only the ITPro flavor has been adapted for Azure Government. The DevOps and DataOps K3s VMs still sign in to the commercial cloud.
+
 ### Connecting to the client VM
 
 - **Without Bastion:** RDP to the client VM's public IP. Add an NSG rule for your own IP address first; ArcBox does not open RDP to the internet.

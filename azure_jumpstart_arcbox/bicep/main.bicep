@@ -347,13 +347,21 @@ param autoShutdownEmailRecipient string = ''
 @description('Option to enable spot pricing for the ArcBox Client VM')
 param enableAzureSpotPricing bool = false
 
-@description('The availability zone for the Virtual Machine, public IP, and data disk for the ArcBox client VM')
+@description('The availability zone for the Virtual Machine, public IP, and data disk for the ArcBox client VM. Empty for regions without availability zones.')
 @allowed([
   '1'
   '2'
   '3'
+  ''
 ])
 param zones string = '1'
+
+@description('SKU of the client VM data disks. Use Premium_LRS in regions without Premium SSD v2 (for example some Azure Government regions); it always uses one shared disk.')
+@allowed([
+  'PremiumV2_LRS'
+  'Premium_LRS'
+])
+param vmsDiskSku string = 'PremiumV2_LRS'
 
 @secure()
 param registryPassword string = newGuid()
@@ -478,6 +486,7 @@ module clientVmDeployment 'clientVm/clientVm.bicep' = {
     autoShutdownEmailRecipient: empty(autoShutdownEmailRecipient) ? null : autoShutdownEmailRecipient
     sqlServerEdition: sqlServerEdition
     zones: zones
+    vmsDiskSku: vmsDiskSku
     enableAzureSpotPricing: enableAzureSpotPricing
   }
   dependsOn: [

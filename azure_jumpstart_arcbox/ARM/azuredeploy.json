@@ -505,10 +505,22 @@
       "allowedValues": [
         "1",
         "2",
-        "3"
+        "3",
+        ""
       ],
       "metadata": {
-        "description": "The availability zone for the Virtual Machine, public IP, and data disk for the ArcBox client VM"
+        "description": "The availability zone for the Virtual Machine, public IP, and data disk for the ArcBox client VM. Empty for regions without availability zones."
+      }
+    },
+    "vmsDiskSku": {
+      "type": "string",
+      "defaultValue": "PremiumV2_LRS",
+      "allowedValues": [
+        "PremiumV2_LRS",
+        "Premium_LRS"
+      ],
+      "metadata": {
+        "description": "SKU of the client VM data disks. Use Premium_LRS in regions without Premium SSD v2 (for example some Azure Government regions); it always uses one shared disk."
       }
     },
     "registryPassword": {
@@ -1857,6 +1869,9 @@
           },
           "nestedVmDiskMBps": {
             "value": "[parameters('nestedVmDiskMBps')]"
+          },
+          "vmsDiskSku": {
+            "value": "[parameters('vmsDiskSku')]"
           }
         },
         "template": {
@@ -2107,8 +2122,12 @@
             "vmsDiskSku": {
               "type": "string",
               "defaultValue": "PremiumV2_LRS",
+              "allowedValues": [
+                "PremiumV2_LRS",
+                "Premium_LRS"
+              ],
               "metadata": {
-                "description": "The SKU of the VMs disk"
+                "description": "SKU of the client VM data disks. Premium SSD v2 allows the PerVM layout and provisioned IOPS/throughput; Premium SSD is for regions without Premium SSD v2 and always uses one shared disk."
               }
             },
             "nestedVmDiskLayout": {
@@ -2178,10 +2197,11 @@
               "allowedValues": [
                 "1",
                 "2",
-                "3"
+                "3",
+                ""
               ],
               "metadata": {
-                "description": "The availability zone for the Virtual Machine, public IP, and data disk for the ArcBox client VM"
+                "description": "The availability zone for the Virtual Machine, public IP, and data disk for the ArcBox client VM. Empty for regions without availability zones."
               }
             },
             "enableAzureSpotPricing": {
@@ -2240,6 +2260,9 @@
                 }
               }
             ],
+            "zoneList": "[if(empty(parameters('zones')), createArray(), createArray(parameters('zones')))]",
+            "isPremiumV2": "[equals(parameters('vmsDiskSku'), 'PremiumV2_LRS')]",
+            "effectiveDiskLayout": "[if(variables('isPremiumV2'), parameters('nestedVmDiskLayout'), 'Shared')]",
             "useVhdStorageAccount": "[not(empty(parameters('vhdStorageAccountName')))]",
             "vhdSourceUrl": "[if(variables('useVhdStorageAccount'), format('https://{0}.blob.{1}/{2}', parameters('vhdStorageAccountName'), environment().suffixes.storage, parameters('vhdContainerName')), 'https://jumpstartprodsg.blob.core.windows.net/arcbox/prod')]",
             "vhdSourceAuth": "[if(variables('useVhdStorageAccount'), 'ManagedIdentity', 'Anonymous')]",
@@ -2250,7 +2273,7 @@
             "PublicIPNoBastion": {
               "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIpAddressName'))]"
             },
-            "nestedVmNames": "[if(equals(parameters('nestedVmDiskLayout'), 'PerVM'), if(equals(parameters('flavor'), 'ITPro'), createArray('SQL', 'Win2K22', 'Win2K25', 'Ubuntu-01', 'Ubuntu-02'), if(equals(parameters('flavor'), 'DataOps'), createArray('SQL'), createArray())), createArray())]"
+            "nestedVmNames": "[if(equals(variables('effectiveDiskLayout'), 'PerVM'), if(equals(parameters('flavor'), 'ITPro'), createArray('SQL', 'Win2K22', 'Win2K25', 'Ubuntu-01', 'Ubuntu-02'), if(equals(parameters('flavor'), 'DataOps'), createArray('SQL'), createArray())), createArray())]"
           },
           "resources": [
             {
@@ -2282,9 +2305,7 @@
               "apiVersion": "2024-05-01",
               "name": "[variables('publicIpAddressName')]",
               "location": "[parameters('location')]",
-              "zones": [
-                "[parameters('zones')]"
-              ],
+              "zones": "[variables('zoneList')]",
               "properties": {
                 "publicIPAllocationMethod": "Static",
                 "publicIPAddressVersion": "IPv4",
@@ -2303,9 +2324,7 @@
               "apiVersion": "2024-03-02",
               "name": "[format('{0}-VMsDisk-{1}', parameters('vmName'), variables('nestedVmNames')[copyIndex()])]",
               "location": "[parameters('location')]",
-              "zones": [
-                "[parameters('zones')]"
-              ],
+              "zones": "[variables('zoneList')]",
               "sku": {
                 "name": "[parameters('vmsDiskSku')]"
               },
@@ -2324,30 +2343,18 @@
               "apiVersion": "2024-03-02",
               "name": "[format('{0}-VMsDisk', parameters('vmName'))]",
               "location": "[parameters('location')]",
-              "zones": [
-                "[parameters('zones')]"
-              ],
+              "zones": "[variables('zoneList')]",
               "sku": {
                 "name": "[parameters('vmsDiskSku')]"
               },
-              "properties": {
-                "creationData": {
-                  "createOption": "Empty"
-                },
-                "diskSizeGB": 256,
-                "burstingEnabled": false,
-                "diskMBpsReadWrite": "[if(equals(parameters('nestedVmDiskLayout'), 'PerVM'), 125, 200)]",
-                "diskIOPSReadWrite": "[if(equals(parameters('nestedVmDiskLayout'), 'PerVM'), 3000, 5000)]"
-              }
+              "properties": "[union(createObject('creationData', createObject('createOption', 'Empty'), 'diskSizeGB', if(variables('isPremiumV2'), 256, 512), 'burstingEnabled', false()), if(variables('isPremiumV2'), createObject('diskMBpsReadWrite', if(equals(variables('effectiveDiskLayout'), 'PerVM'), 125, 200), 'diskIOPSReadWrite', if(equals(variables('effectiveDiskLayout'), 'PerVM'), 3000, 5000)), createObject()))]"
             },
             {
               "type": "Microsoft.Compute/virtualMachines",
               "apiVersion": "2024-07-01",
               "name": "[parameters('vmName')]",
               "location": "[parameters('location')]",
-              "zones": [
-                "[parameters('zones')]"
-              ],
+              "zones": "[variables('zoneList')]",
               "identity": {
                 "type": "SystemAssigned"
               },
@@ -2416,7 +2423,7 @@
                   "fileUris": [
                     "[uri(parameters('templateBaseUrl'), 'artifacts/Bootstrap.ps1')]"
                   ],
-                  "commandToExecute": "[format('powershell.exe -ExecutionPolicy Bypass -File Bootstrap.ps1 -adminUsername {0} -tenantId {1} -spnAuthority {2} -subscriptionId {3} -resourceGroup {4} -azdataUsername {5} -acceptEula {6} -registryUsername {7} -arcDcName {8} -azureLocation {9} -mssqlmiName {10} -POSTGRES_NAME {11} -POSTGRES_WORKER_NODE_COUNT {12} -POSTGRES_DATASIZE {13} -POSTGRES_SERVICE_TYPE {14} -stagingStorageAccountName {15} -workspaceName {16} -templateBaseUrl {17} -flavor {18} -k3sArcDataClusterName {19} -k3sArcClusterName {20} -aksArcClusterName {21} -aksdrArcClusterName {22} -githubUser {23} -githubBranch {24} -vmAutologon {25} -rdpPort {26} -addsDomainName {27} -customLocationRPOID {28} -resourceTags {29} -namingPrefix {30} -debugEnabled {31} -sqlServerEdition {32} -autoShutdownEnabled {33} -keyVaultName {34} -vhdSourceUrl {35} -vhdSourceAuth {36} -nestedVmDisks {37}', parameters('windowsAdminUsername'), parameters('tenantId'), parameters('spnAuthority'), subscription().subscriptionId, resourceGroup().name, parameters('azdataUsername'), parameters('acceptEula'), parameters('registryUsername'), parameters('arcDcName'), parameters('location'), parameters('mssqlmiName'), parameters('postgresName'), parameters('postgresWorkerNodeCount'), parameters('postgresDatasize'), parameters('postgresServiceType'), parameters('stagingStorageAccountName'), parameters('workspaceName'), parameters('templateBaseUrl'), parameters('flavor'), parameters('k3sArcDataClusterName'), parameters('k3sArcClusterName'), parameters('aksArcClusterName'), parameters('aksdrArcClusterName'), parameters('githubUser'), parameters('githubBranch'), parameters('vmAutologon'), parameters('rdpPort'), parameters('addsDomainName'), parameters('customLocationRPOID'), parameters('resourceTags'), parameters('namingPrefix'), parameters('debugEnabled'), parameters('sqlServerEdition'), parameters('autoShutdownEnabled'), parameters('keyVaultName'), variables('vhdSourceUrl'), variables('vhdSourceAuth'), if(empty(variables('nestedVmNames')), 'none', join(variables('nestedVmNames'), ',')))]"
+                  "commandToExecute": "[format('powershell.exe -ExecutionPolicy Bypass -File Bootstrap.ps1 -adminUsername {0} -tenantId {1} -spnAuthority {2} -subscriptionId {3} -resourceGroup {4} -azdataUsername {5} -acceptEula {6} -registryUsername {7} -arcDcName {8} -azureLocation {9} -mssqlmiName {10} -POSTGRES_NAME {11} -POSTGRES_WORKER_NODE_COUNT {12} -POSTGRES_DATASIZE {13} -POSTGRES_SERVICE_TYPE {14} -stagingStorageAccountName {15} -workspaceName {16} -templateBaseUrl {17} -flavor {18} -k3sArcDataClusterName {19} -k3sArcClusterName {20} -aksArcClusterName {21} -aksdrArcClusterName {22} -githubUser {23} -githubBranch {24} -vmAutologon {25} -rdpPort {26} -addsDomainName {27} -customLocationRPOID {28} -resourceTags {29} -namingPrefix {30} -debugEnabled {31} -sqlServerEdition {32} -autoShutdownEnabled {33} -keyVaultName {34} -azureEnvironment {35} -vhdSourceUrl {36} -vhdSourceAuth {37} -nestedVmDisks {38}', parameters('windowsAdminUsername'), parameters('tenantId'), parameters('spnAuthority'), subscription().subscriptionId, resourceGroup().name, parameters('azdataUsername'), parameters('acceptEula'), parameters('registryUsername'), parameters('arcDcName'), parameters('location'), parameters('mssqlmiName'), parameters('postgresName'), parameters('postgresWorkerNodeCount'), parameters('postgresDatasize'), parameters('postgresServiceType'), parameters('stagingStorageAccountName'), parameters('workspaceName'), parameters('templateBaseUrl'), parameters('flavor'), parameters('k3sArcDataClusterName'), parameters('k3sArcClusterName'), parameters('aksArcClusterName'), parameters('aksdrArcClusterName'), parameters('githubUser'), parameters('githubBranch'), parameters('vmAutologon'), parameters('rdpPort'), parameters('addsDomainName'), parameters('customLocationRPOID'), parameters('resourceTags'), parameters('namingPrefix'), parameters('debugEnabled'), parameters('sqlServerEdition'), parameters('autoShutdownEnabled'), parameters('keyVaultName'), environment().name, variables('vhdSourceUrl'), variables('vhdSourceAuth'), if(empty(variables('nestedVmNames')), 'none', join(variables('nestedVmNames'), ',')))]"
                 }
               },
               "dependsOn": [
@@ -2997,7 +3004,7 @@
                 }
               }
             ],
-            "keyVaultPrivateDnsZoneName": "privatelink.vaultcore.azure.net"
+            "keyVaultPrivateDnsZoneName": "[format('privatelink{0}', replace(environment().suffixes.keyvaultDns, '.vault.', '.vaultcore.'))]"
           },
           "resources": {
             "arcVirtualNetwork": {
@@ -6567,7 +6574,7 @@
                   "fileUris": [
                     "[uri(parameters('templateBaseUrl'), 'artifacts/SetupADDS.ps1')]"
                   ],
-                  "commandToExecute": "[format('powershell.exe -ExecutionPolicy Bypass -File SetupADDS.ps1 -domainName {0} -domainAdminUsername {1} -templateBaseUrl {2} -keyVaultName {3}', parameters('addsDomainName'), parameters('windowsAdminUsername'), parameters('templateBaseUrl'), parameters('keyVaultName'))]"
+                  "commandToExecute": "[format('powershell.exe -ExecutionPolicy Bypass -File SetupADDS.ps1 -domainName {0} -domainAdminUsername {1} -templateBaseUrl {2} -keyVaultName {3} -azureEnvironment {4}', parameters('addsDomainName'), parameters('windowsAdminUsername'), parameters('templateBaseUrl'), parameters('keyVaultName'), environment().name)]"
                 }
               },
               "dependsOn": [
@@ -6907,7 +6914,7 @@
                 }
               }
             ],
-            "keyVaultPrivateDnsZoneName": "privatelink.vaultcore.azure.net"
+            "keyVaultPrivateDnsZoneName": "[format('privatelink{0}', replace(environment().suffixes.keyvaultDns, '.vault.', '.vaultcore.'))]"
           },
           "resources": {
             "arcVirtualNetwork": {

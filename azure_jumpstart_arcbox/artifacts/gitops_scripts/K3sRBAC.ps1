@@ -8,6 +8,7 @@ $appClonedRepo = "https://github.com/$Env:githubUser/jumpstart-apps"
 Start-Transcript -Path $Env:ArcBoxLogsDir\K3sRBAC.log
 
 Write-Host "Login to Az CLI using the managed identity"
+az cloud set --name $Env:azureEnvironment
 az login --identity
 
 # Making extension install dynamic

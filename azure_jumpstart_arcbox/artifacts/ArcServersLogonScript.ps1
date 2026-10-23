@@ -19,6 +19,8 @@ $namingPrefix = $env:namingPrefix
 
 # Moved VHD storage account details here to keep only in place to prevent duplicates.
 # The source is passed in by the deployment (Bootstrap.ps1); default to the public Jumpstart storage account
+# Azure cloud the nested VMs are onboarded to (AzureCloud, AzureUSGovernment, ...)
+$azureCloud = if ($Env:azureEnvironment) { $Env:azureEnvironment } else { 'AzureCloud' }
 $vhdSourceUrl = if ($Env:vhdSourceUrl) { $Env:vhdSourceUrl.TrimEnd('/') } else { 'https://jumpstartprodsg.blob.core.windows.net/arcbox/prod' }
 $vhdSourceFolder = "$vhdSourceUrl/*"
 
@@ -148,11 +150,12 @@ if ($Env:flavor -ne 'DevOps') {
 
     # Required for CLI commands
     Write-Header 'Az CLI Login'
+    az cloud set --name $Env:azureEnvironment
     az login --identity
     az account set -s $subscriptionId
 
     Write-Header 'Az PowerShell Login'
-    Connect-AzAccount -Identity -Tenant $tenantId -Subscription $subscriptionId
+    Connect-AzAccount -Identity -Environment $Env:azureEnvironment -Tenant $tenantId -Subscription $subscriptionId
 
     $DeploymentProgressString = 'Started ArcServersLogonScript'
 
@@ -321,7 +324,7 @@ if ($Env:flavor -ne 'DevOps') {
     # Onboarding the nested VMs as Azure Arc-enabled servers
     Write-Output 'Onboarding the nested Windows VMs as Azure Arc-enabled servers'
     $accessToken = ConvertFrom-SecureString ((Get-AzAccessToken -AsSecureString).Token) -AsPlainText
-    Invoke-Command -VMName $SQLvmName -ScriptBlock { powershell -File $Using:nestedVMArcBoxDir\installArcAgent.ps1 -accessToken $using:accessToken, -tenantId $Using:tenantId, -subscriptionId $Using:subscriptionId, -resourceGroup $Using:resourceGroup, -azureLocation $Using:azureLocation } -Credential $winCreds
+    Invoke-Command -VMName $SQLvmName -ScriptBlock { powershell -File $Using:nestedVMArcBoxDir\installArcAgent.ps1 -accessToken $using:accessToken, -tenantId $Using:tenantId, -subscriptionId $Using:subscriptionId, -resourceGroup $Using:resourceGroup, -azureLocation $Using:azureLocation, -cloud $Using:azureCloud } -Credential $winCreds
 
     # Wait for the Arc-enabled server installation to be completed
     $retryCount = 0
@@ -393,6 +396,7 @@ if ($Env:flavor -ne 'DevOps') {
     # Get access token to make ARM REST API call for SQL server BPA and migration assessments
     $token = (az account get-access-token --subscription $subscriptionId --query accessToken --output tsv)
     $headers = @{'Authorization' = "Bearer $token"; 'Content-Type' = 'application/json' }
+    $armEndpoint = (Get-AzContext).Environment.ResourceManagerUrl.TrimEnd('/')
 
     # Enable Best practices assessment
     if ($amaExtension.StatusCode -eq 0) {
@@ -412,7 +416,7 @@ if ($Env:flavor -ne 'DevOps') {
         # Wait for a minute to finish everyting and run assessment
         Start-Sleep(60)
 
-        $armRestApiEndpoint = "https://management.azure.com/subscriptions/$subscriptionId/resourcegroups/$resourceGroup/providers/Microsoft.HybridCompute/machines/$SQLvmName/extensions/WindowsAgent.SqlServer?api-version=2019-08-02-preview"
+        $armRestApiEndpoint = "$armEndpoint/subscriptions/$subscriptionId/resourcegroups/$resourceGroup/providers/Microsoft.HybridCompute/machines/$SQLvmName/extensions/WindowsAgent.SqlServer?api-version=2019-08-02-preview"
 
         # Build API request payload
         $worspaceResourceId = "/subscriptions/$subscriptionId/resourcegroups/$resourceGroup/providers/microsoft.operationalinsights/workspaces/$Env:workspaceName".ToLower()
@@ -433,10 +437,10 @@ if ($Env:flavor -ne 'DevOps') {
 
     # Run SQL Server Azure Migration Assessment
     Write-Host "Enabling SQL Server Azure Migration Assessment.`n"
-    $migrationApiURL = 'https://management.azure.com/batch?api-version=2020-06-01'
+    $migrationApiURL = "$armEndpoint/batch?api-version=2020-06-01"
     $assessmentName = (New-Guid).Guid
     $payLoad = @"
-{"requests":[{"httpMethod":"POST","name":"$assessmentName","requestHeaderDetails":{"commandName":"Microsoft_Azure_HybridData_Platform."},"url":"https://management.azure.com/subscriptions/$subscriptionId/resourceGroups/$resourceGroup/providers/Microsoft.AzureArcData/SqlServerInstances/$SQLvmName/runMigrationAssessment?api-version=2024-05-01-preview"}]}
+{"requests":[{"httpMethod":"POST","name":"$assessmentName","requestHeaderDetails":{"commandName":"Microsoft_Azure_HybridData_Platform."},"url":"$armEndpoint/subscriptions/$subscriptionId/resourceGroups/$resourceGroup/providers/Microsoft.AzureArcData/SqlServerInstances/$SQLvmName/runMigrationAssessment?api-version=2024-05-01-preview"}]}
 "@
 
     $httpResp = Invoke-WebRequest -Method Post -Uri $migrationApiURL -Body $payLoad -Headers $headers
@@ -672,7 +676,7 @@ if ($Env:flavor -ne 'DevOps') {
 
         # Update Linux VM onboarding script connect to Azure Arc, get new token as it might have been expired by the time execution reached this line.
         $accessToken = ConvertFrom-SecureString ((Get-AzAccessToken -AsSecureString).Token) -AsPlainText
-        (Get-Content -Path "$agentScript\installArcAgentUbuntu.sh" -Raw) -replace '\$accessToken', "'$accessToken'" -replace '\$resourceGroup', "'$resourceGroup'" -replace '\$tenantId', "'$Env:tenantId'" -replace '\$azureLocation', "'$Env:azureLocation'" -replace '\$subscriptionId', "'$subscriptionId'" | Set-Content -Path "$agentScript\installArcAgentModifiedUbuntu.sh"
+        (Get-Content -Path "$agentScript\installArcAgentUbuntu.sh" -Raw) -replace '\$accessToken', "'$accessToken'" -replace '\$resourceGroup', "'$resourceGroup'" -replace '\$tenantId', "'$Env:tenantId'" -replace '\$azureLocation', "'$Env:azureLocation'" -replace '\$subscriptionId', "'$subscriptionId'" -replace '\$azureCloud', "'$azureCloud'" | Set-Content -Path "$agentScript\installArcAgentModifiedUbuntu.sh"
 
         # Copy installation script to nested Linux VMs
         Write-Output 'Transferring installation script to nested Linux VMs...'
@@ -703,7 +707,7 @@ if ($Env:flavor -ne 'DevOps') {
 
         # Onboarding the nested VMs as Azure Arc-enabled servers
         Write-Output 'Onboarding the nested Windows VMs as Azure Arc-enabled servers'
-        Invoke-Command -VMName $Win2k22vmName, $Win2k25vmName -ScriptBlock { powershell -File $Using:nestedVMArcBoxDir\installArcAgent.ps1 -accessToken $using:accessToken, -tenantId $Using:tenantId, -subscriptionId $Using:subscriptionId, -resourceGroup $Using:resourceGroup, -azureLocation $Using:azureLocation } -Credential $winCreds
+        Invoke-Command -VMName $Win2k22vmName, $Win2k25vmName -ScriptBlock { powershell -File $Using:nestedVMArcBoxDir\installArcAgent.ps1 -accessToken $using:accessToken, -tenantId $Using:tenantId, -subscriptionId $Using:subscriptionId, -resourceGroup $Using:resourceGroup, -azureLocation $Using:azureLocation, -cloud $Using:azureCloud } -Credential $winCreds
 
         Write-Output 'Onboarding the nested Linux VMs as an Azure Arc-enabled servers'
         $UbuntuSessions = New-PSSession -HostName $Ubuntu01VmIp, $Ubuntu02VmIp -KeyFilePath "$Env:USERPROFILE\.ssh\id_rsa" -UserName $nestedLinuxUsername
@@ -713,7 +717,7 @@ if ($Env:flavor -ne 'DevOps') {
         $VMs = @("$namingPrefix-SQL", "$namingPrefix-Win2K22", "$namingPrefix-Win2K25")
         $VMs | ForEach-Object -Parallel {
 
-            $null = Connect-AzAccount -Identity -Tenant $using:tenantId -Subscription $using:subscriptionId -Scope Process -WarningAction SilentlyContinue
+            $null = Connect-AzAccount -Identity -Environment $Env:azureEnvironment -Tenant $using:tenantId -Subscription $using:subscriptionId -Scope Process -WarningAction SilentlyContinue
 
             $vm = $PSItem
 
@@ -727,7 +731,7 @@ if ($Env:flavor -ne 'DevOps') {
         Write-Header 'Enabling SSH access and triggering update assessment for Arc-enabled servers'
         $VMs = @("$namingPrefix-SQL", "$namingPrefix-Ubuntu-01", "$namingPrefix-Ubuntu-02", "$namingPrefix-Win2K22", "$namingPrefix-Win2K25")
         $VMs | ForEach-Object -Parallel {
-            $null = Connect-AzAccount -Identity -Tenant $using:tenantId -Subscription $using:subscriptionId -Scope Process -WarningAction SilentlyContinue
+            $null = Connect-AzAccount -Identity -Environment $Env:azureEnvironment -Tenant $using:tenantId -Subscription $using:subscriptionId -Scope Process -WarningAction SilentlyContinue
 
             $vm = $PSItem
             $connectedMachine = Get-AzConnectedMachine -Name $vm -ResourceGroupName $using:resourceGroup -SubscriptionId $using:subscriptionId
@@ -752,7 +756,7 @@ if ($Env:flavor -ne 'DevOps') {
         }
     } elseif ($Env:flavor -eq 'DataOps') {
         Write-Header 'Enabling SSH access to Arc-enabled servers'
-        $null = Connect-AzAccount -Identity -Tenant $tenantId -Subscription $subscriptionId -Scope Process -WarningAction SilentlyContinue
+        $null = Connect-AzAccount -Identity -Environment $Env:azureEnvironment -Tenant $tenantId -Subscription $subscriptionId -Scope Process -WarningAction SilentlyContinue
         $connectedMachine = Get-AzConnectedMachine -Name $SQLvmName -ResourceGroupName $resourceGroup -SubscriptionId $subscriptionId
         $connectedMachineEndpoint = (Invoke-AzRestMethod -Method get -Path "$($connectedMachine.Id)/providers/Microsoft.HybridConnectivity/endpoints/default?api-version=2023-03-15").Content | ConvertFrom-Json
         if (-not ($connectedMachineEndpoint.properties | Where-Object { $_.type -eq 'default' -and $_.provisioningState -eq 'Succeeded' })) {

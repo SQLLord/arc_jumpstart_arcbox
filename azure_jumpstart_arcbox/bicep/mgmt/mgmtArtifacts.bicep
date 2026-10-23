@@ -618,7 +618,7 @@ module policyDeployment './policyAzureArc.bicep' = {
 }
 
 // Private DNS zone for Key Vault private endpoints (Azure public cloud), linked to the ArcBox VNet so the client VM resolves the vault to its private IP
-var keyVaultPrivateDnsZoneName = 'privatelink.vaultcore.azure.net'
+var keyVaultPrivateDnsZoneName = 'privatelink${replace(environment().suffixes.keyvaultDns, '.vault.', '.vaultcore.')}'
 
 resource keyVaultPrivateDnsZone 'Microsoft.Network/privateDnsZones@2024-06-01' = if (keyVaultPrivateEndpoint) {
   name: keyVaultPrivateDnsZoneName

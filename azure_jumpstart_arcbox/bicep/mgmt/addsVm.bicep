@@ -141,7 +141,7 @@ resource vmName_DeployADDS 'Microsoft.Compute/virtualMachines/extensions@2024-07
       fileUris: [
         uri(templateBaseUrl, 'artifacts/SetupADDS.ps1')
       ]
-      commandToExecute: 'powershell.exe -ExecutionPolicy Bypass -File SetupADDS.ps1 -domainName ${addsDomainName} -domainAdminUsername ${windowsAdminUsername} -templateBaseUrl ${templateBaseUrl} -keyVaultName ${keyVaultName}'
+      commandToExecute: 'powershell.exe -ExecutionPolicy Bypass -File SetupADDS.ps1 -domainName ${addsDomainName} -domainAdminUsername ${windowsAdminUsername} -templateBaseUrl ${templateBaseUrl} -keyVaultName ${keyVaultName} -azureEnvironment ${environment().name}'
     }
   }
 }

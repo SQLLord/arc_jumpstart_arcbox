@@ -253,7 +253,7 @@
         }
       }
     ],
-    "keyVaultPrivateDnsZoneName": "privatelink.vaultcore.azure.net"
+    "keyVaultPrivateDnsZoneName": "[format('privatelink{0}', replace(environment().suffixes.keyvaultDns, '.vault.', '.vaultcore.'))]"
   },
   "resources": {
     "arcVirtualNetwork": {

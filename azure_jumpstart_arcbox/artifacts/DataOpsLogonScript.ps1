@@ -52,10 +52,11 @@ Set-NetFirewallProfile -Profile Domain, Public, Private -Enabled False
 
 # Required for azcopy
 Write-Header "Az PowerShell Login"
-Connect-AzAccount -Identity -Tenant $env:tenantId -Subscription $env:subscriptionId
+Connect-AzAccount -Identity -Environment $Env:azureEnvironment -Tenant $env:tenantId -Subscription $env:subscriptionId
 
 # Required for CLI commands
 Write-Header "Az CLI Login"
+az cloud set --name $Env:azureEnvironment
 az login --identity
 az account set -s $env:subscriptionId
 
@@ -126,7 +127,7 @@ Write-Host "`n"
 
 # Downloading k3s Kubernetes cluster kubeconfig file
 Write-Header "Downloading k3s Kubeconfig"
-$sourceFile = "https://$Env:stagingStorageAccountName.blob.core.windows.net/$($Env:k3sArcDataClusterName.ToLower())/config"
+$sourceFile = "https://$Env:stagingStorageAccountName.blob.$((Get-AzContext).Environment.StorageEndpointSuffix)/$($Env:k3sArcDataClusterName.ToLower())/config"
 $null = Invoke-NativeCommandWithRetry -Description "Downloading $sourceFile" { azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile "C:\Users\$Env:adminUsername\.kube\config-k3s-data" }
 $null = Invoke-NativeCommandWithRetry -Description "Downloading $sourceFile" { azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile "C:\Users\$Env:adminUsername\.kube\config" }
 
@@ -135,7 +136,7 @@ $null = Invoke-NativeCommandWithRetry -Description "Downloading $sourceFile" { a
 
 # Downloading 'installk3s.log' log file
 Write-Header "Downloading k3s Install Logs"
-$sourceFile = "https://$Env:stagingStorageAccountName.blob.core.windows.net/$($Env:k3sArcDataClusterName.ToLower())/*"
+$sourceFile = "https://$Env:stagingStorageAccountName.blob.$((Get-AzContext).Environment.StorageEndpointSuffix)/$($Env:k3sArcDataClusterName.ToLower())/*"
 $null = Invoke-NativeCommandWithRetry -Description "Downloading $sourceFile" { azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "$Env:ArcBoxLogsDir\" --include-pattern "*.log" }
 
 Start-Sleep -Seconds 10

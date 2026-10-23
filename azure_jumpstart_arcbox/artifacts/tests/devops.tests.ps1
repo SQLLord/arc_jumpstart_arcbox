@@ -7,7 +7,7 @@ BeforeDiscovery {
     $clusters = @($k3sArcDataClusterName, $k3sArcClusterName)
     $VMs = @($k3sArcDataClusterName, $k3sArcClusterName)
 
-    $null = Connect-AzAccount -Identity -Tenant $env:tenantId -Subscription $env:subscriptionId
+    $null = Connect-AzAccount -Identity -Environment $Env:azureEnvironment -Tenant $env:tenantId -Subscription $env:subscriptionId
     az config set extension.use_dynamic_install=yes_without_prompt
 }
 

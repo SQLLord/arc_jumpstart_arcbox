@@ -142,7 +142,7 @@ if (Get-ScheduledTask | Where-Object {$_.TaskName -eq $TaskName}) {
         Write-Header "Enabling Azure VM Auto-shutdown"
 
         $ScheduleResource = Get-AzResource -ResourceGroup $env:resourceGroup -ResourceType Microsoft.DevTestLab/schedules
-        $Uri = "https://management.azure.com$($ScheduleResource.ResourceId)?api-version=2018-09-15"
+        $Uri = "$((Get-AzContext).Environment.ResourceManagerUrl.TrimEnd('/'))$($ScheduleResource.ResourceId)?api-version=2018-09-15"
 
         $Schedule = Invoke-AzRestMethod -Uri $Uri
 

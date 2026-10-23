@@ -7,7 +7,8 @@ param (
     [string]$domainName,
     [string]$domainAdminUsername,
     [string]$templateBaseUrl,
-    [string]$keyVaultName
+    [string]$keyVaultName,
+    [string]$azureEnvironment = 'AzureCloud'
 )
 
 [System.Environment]::SetEnvironmentVariable('domainName', $domainName,[System.EnvironmentVariableTarget]::Machine)
@@ -67,7 +68,7 @@ foreach ($module in $modules) {
 }
 
 # Connect to Azure using Managed Identity
-Connect-AzAccount -Identity
+Connect-AzAccount -Identity -Environment $azureEnvironment
 
 # Get the resource group name from the Azure Instance Metadata Service
 $metadataUrl = "http://169.254.169.254/metadata/instance/compute?api-version=2021-02-01"

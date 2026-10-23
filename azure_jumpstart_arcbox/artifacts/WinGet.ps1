@@ -61,7 +61,7 @@ function Invoke-WinGetConfiguration {
     return $false
 }
 
-Connect-AzAccount -Identity -Tenant $tenantId -Subscription $subscriptionId
+Connect-AzAccount -Identity -Environment $Env:azureEnvironment -Tenant $tenantId -Subscription $subscriptionId
 
 Set-DeploymentProgress -Status "Installing WinGet packages..."
 

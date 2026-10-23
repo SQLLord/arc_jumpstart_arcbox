@@ -110,7 +110,11 @@ param addsDomainName string = 'jumpstart.local'
 @description('The custom location RPO ID. This parameter is only needed when deploying the DataOps flavor.')
 param customLocationRPOID string = ''
 
-@description('The SKU of the VMs disk')
+@description('SKU of the client VM data disks. Premium SSD v2 allows the PerVM layout and provisioned IOPS/throughput; Premium SSD is for regions without Premium SSD v2 and always uses one shared disk.')
+@allowed([
+  'PremiumV2_LRS'
+  'Premium_LRS'
+])
 param vmsDiskSku string = 'PremiumV2_LRS'
 
 @description('Shared: all nested VM VHDX files on one data disk. PerVM: one extra data disk per nested VM, mounted under F:\\Virtual Machines\\<VM name>.')
@@ -143,13 +147,20 @@ param autoShutdownTime string = '1800' // The time for auto-shutdown in HHmm for
 param autoShutdownTimezone string = 'UTC' // Timezone for the auto-shutdown
 param autoShutdownEmailRecipient string = ''
 
-@description('The availability zone for the Virtual Machine, public IP, and data disk for the ArcBox client VM')
+@description('The availability zone for the Virtual Machine, public IP, and data disk for the ArcBox client VM. Empty for regions without availability zones.')
 @allowed([
   '1'
   '2'
   '3'
+  ''
 ])
 param zones string = '1'
+
+var zoneList = empty(zones) ? [] : [zones]
+
+// Provisioned IOPS/throughput and one disk per nested VM need Premium SSD v2
+var isPremiumV2 = vmsDiskSku == 'PremiumV2_LRS'
+var effectiveDiskLayout = isPremiumV2 ? nestedVmDiskLayout : 'Shared'
 
 @description('Option to enable spot pricing for the ArcBox Client VM')
 param enableAzureSpotPricing bool = false
@@ -204,7 +215,7 @@ resource networkInterface 'Microsoft.Network/networkInterfaces@2024-05-01' = {
 resource publicIpAddress 'Microsoft.Network/publicIPAddresses@2024-05-01' = if (deployBastion == false) {
   name: publicIpAddressName
   location: location
-  zones: [zones]
+  zones: zoneList
   properties: {
     publicIPAllocationMethod: 'Static'
     publicIPAddressVersion: 'IPv4'
@@ -216,14 +227,14 @@ resource publicIpAddress 'Microsoft.Network/publicIPAddresses@2024-05-01' = if (
 }
 
 // Nested VMs created on the client VM per flavor (ArcServersLogonScript.ps1)
-var nestedVmNames = nestedVmDiskLayout == 'PerVM'
+var nestedVmNames = effectiveDiskLayout == 'PerVM'
   ? (flavor == 'ITPro' ? ['SQL', 'Win2K22', 'Win2K25', 'Ubuntu-01', 'Ubuntu-02'] : flavor == 'DataOps' ? ['SQL'] : [])
   : []
 
 resource nestedVmDisks 'Microsoft.Compute/disks@2024-03-02' = [for nestedVmName in nestedVmNames: {
   location: location
   name: '${vmName}-VMsDisk-${nestedVmName}'
-  zones: [zones]
+  zones: zoneList
   sku: {
     name: vmsDiskSku
   }
@@ -249,26 +260,28 @@ var nestedVmDataDisks = [for (nestedVmName, i) in nestedVmNames: {
 resource vmDisk 'Microsoft.Compute/disks@2024-03-02' = {
   location: location
   name: '${vmName}-VMsDisk'
-  zones: [zones]
+  zones: zoneList
   sku: {
     name: vmsDiskSku
   }
-  properties: {
+  // Premium SSD has no provisioned performance; 512 GB (P20) gives it 2300 IOPS / 150 MB/s
+  properties: union({
     creationData: {
       createOption: 'Empty'
     }
-    diskSizeGB: 256
+    diskSizeGB: isPremiumV2 ? 256 : 512
     burstingEnabled: false
+  }, isPremiumV2 ? {
     // With the PerVM layout the VHDX files live on the per-VM disks, so the shared disk only needs the Premium SSD v2 baseline
-    diskMBpsReadWrite: nestedVmDiskLayout == 'PerVM' ? 125 : 200
-    diskIOPSReadWrite: nestedVmDiskLayout == 'PerVM' ? 3000 : 5000
-  }
+    diskMBpsReadWrite: effectiveDiskLayout == 'PerVM' ? 125 : 200
+    diskIOPSReadWrite: effectiveDiskLayout == 'PerVM' ? 3000 : 5000
+  } : {})
 }
 
 resource vm 'Microsoft.Compute/virtualMachines@2024-07-01' = {
   name: vmName
   location: location
-  zones: [zones]
+  zones: zoneList
   dependsOn: [
     nestedVmDisks
   ]
@@ -367,7 +380,7 @@ resource vmBootstrap 'Microsoft.Compute/virtualMachines/extensions@2024-07-01' =
       fileUris: [
         uri(templateBaseUrl, 'artifacts/Bootstrap.ps1')
       ]
-      commandToExecute: 'powershell.exe -ExecutionPolicy Bypass -File Bootstrap.ps1 -adminUsername ${windowsAdminUsername} -tenantId ${tenantId} -spnAuthority ${spnAuthority} -subscriptionId ${subscription().subscriptionId} -resourceGroup ${resourceGroup().name} -azdataUsername ${azdataUsername} -acceptEula ${acceptEula} -registryUsername ${registryUsername} -arcDcName ${arcDcName} -azureLocation ${location} -mssqlmiName ${mssqlmiName} -POSTGRES_NAME ${postgresName} -POSTGRES_WORKER_NODE_COUNT ${postgresWorkerNodeCount} -POSTGRES_DATASIZE ${postgresDatasize} -POSTGRES_SERVICE_TYPE ${postgresServiceType} -stagingStorageAccountName ${stagingStorageAccountName} -workspaceName ${workspaceName} -templateBaseUrl ${templateBaseUrl} -flavor ${flavor} -k3sArcDataClusterName ${k3sArcDataClusterName} -k3sArcClusterName ${k3sArcClusterName} -aksArcClusterName ${aksArcClusterName} -aksdrArcClusterName ${aksdrArcClusterName} -githubUser ${githubUser} -githubBranch ${githubBranch} -vmAutologon ${vmAutologon} -rdpPort ${rdpPort} -addsDomainName ${addsDomainName} -customLocationRPOID ${customLocationRPOID} -resourceTags ${resourceTags} -namingPrefix ${namingPrefix} -debugEnabled ${debugEnabled} -sqlServerEdition ${sqlServerEdition} -autoShutdownEnabled ${autoShutdownEnabled} -keyVaultName ${keyVaultName} -vhdSourceUrl ${vhdSourceUrl} -vhdSourceAuth ${vhdSourceAuth} -nestedVmDisks ${empty(nestedVmNames) ? 'none' : join(nestedVmNames, ',')}'
+      commandToExecute: 'powershell.exe -ExecutionPolicy Bypass -File Bootstrap.ps1 -adminUsername ${windowsAdminUsername} -tenantId ${tenantId} -spnAuthority ${spnAuthority} -subscriptionId ${subscription().subscriptionId} -resourceGroup ${resourceGroup().name} -azdataUsername ${azdataUsername} -acceptEula ${acceptEula} -registryUsername ${registryUsername} -arcDcName ${arcDcName} -azureLocation ${location} -mssqlmiName ${mssqlmiName} -POSTGRES_NAME ${postgresName} -POSTGRES_WORKER_NODE_COUNT ${postgresWorkerNodeCount} -POSTGRES_DATASIZE ${postgresDatasize} -POSTGRES_SERVICE_TYPE ${postgresServiceType} -stagingStorageAccountName ${stagingStorageAccountName} -workspaceName ${workspaceName} -templateBaseUrl ${templateBaseUrl} -flavor ${flavor} -k3sArcDataClusterName ${k3sArcDataClusterName} -k3sArcClusterName ${k3sArcClusterName} -aksArcClusterName ${aksArcClusterName} -aksdrArcClusterName ${aksdrArcClusterName} -githubUser ${githubUser} -githubBranch ${githubBranch} -vmAutologon ${vmAutologon} -rdpPort ${rdpPort} -addsDomainName ${addsDomainName} -customLocationRPOID ${customLocationRPOID} -resourceTags ${resourceTags} -namingPrefix ${namingPrefix} -debugEnabled ${debugEnabled} -sqlServerEdition ${sqlServerEdition} -autoShutdownEnabled ${autoShutdownEnabled} -keyVaultName ${keyVaultName} -azureEnvironment ${environment().name} -vhdSourceUrl ${vhdSourceUrl} -vhdSourceAuth ${vhdSourceAuth} -nestedVmDisks ${empty(nestedVmNames) ? 'none' : join(nestedVmNames, ',')}'
     }
   }
 }
