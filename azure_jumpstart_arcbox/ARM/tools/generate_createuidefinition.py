@@ -89,6 +89,7 @@ def build_ui_definition(caps):
 
     VM, NET, ADV = "steps('vm')", "steps('network')", "steps('advanced')"
     IS_PERVM = f"equals({VM}.nestedVmDiskLayout, 'PerVM')"
+    OWN_VHD_STORAGE = f"equals({ADV}.vhdSource, 'StorageAccount')"
     PERVM_SIZE = f'{VM}.clientVmSizePerVm'
     NESTED_VM_COUNT = "if(equals(basics('flavor'), 'ITPro'), 5, if(equals(basics('flavor'), 'DataOps'), 1, 0))"
 
@@ -231,13 +232,18 @@ def build_ui_definition(caps):
            constraints=OD(required=True)),
         el(name='githubUser', type='Microsoft.Common.TextBox', label='GitHub account hosting jumpstart-apps (DevOps only)',
            defaultValue='Azure', constraints=OD(required=True)),
-        el(name='vhdStorageAccountName', type='Microsoft.Common.TextBox',
-           label='VHD storage account (empty = public Jumpstart storage)', defaultValue='arcboxfilesdonotdelete',
-           constraints=OD(required=False)),
-        el(name='vhdStorageAccountResourceGroup', type='Microsoft.Common.TextBox', label='VHD storage account resource group',
-           defaultValue='Arcbox', visible=f'[not(empty({ADV}.vhdStorageAccountName))]', constraints=OD(required=True)),
+        el(name='vhdSource', type='Microsoft.Common.OptionsGroup', label='Nested VM image source',
+           defaultValue='Public Jumpstart storage',
+           toolTip='Public Jumpstart storage works in any subscription. A storage account in this subscription is read with the client VM managed identity (the deployment grants it Storage Blob Data Reader), so it does not need anonymous access.',
+           constraints=OD(allowedValues=[OD(label='Public Jumpstart storage', value='Public'),
+                                         OD(label='Storage account in this subscription', value='StorageAccount')], required=True)),
+        el(name='vhdStorageAccount', type='Microsoft.Solutions.ResourceSelector', label='VHD storage account',
+           resourceType='Microsoft.Storage/storageAccounts',
+           options=OD(filter=OD(subscription='onBasics', location='all')),
+           toolTip='Storage account holding copies of the ArcBox VHDX files (for example ArcBox-SQL.vhdx).',
+           visible=f'[{OWN_VHD_STORAGE}]'),
         el(name='vhdContainerName', type='Microsoft.Common.TextBox', label='VHD container', defaultValue='arcboxvhds',
-           visible=f'[not(empty({ADV}.vhdStorageAccountName))]', constraints=OD(required=True)),
+           visible=f'[{OWN_VHD_STORAGE}]', constraints=OD(required=True)),
         el(name='keyVaultName', type='Microsoft.Common.TextBox', label='Key Vault name (empty = auto-generated)',
            constraints=OD(required=False, regex='^$|^[A-Za-z][A-Za-z0-9-]{1,22}[A-Za-z0-9]$',
                           validationMessage='3-24 letters, numbers or hyphens, starting with a letter.')),
@@ -261,14 +267,16 @@ def build_ui_definition(caps):
         'autoShutdownTimezone': (f'{VM}.autoShutdownEnabled', f'{VM}.autoShutdownTimezone', "'UTC'"),
         'autoShutdownEmailRecipient': (f'{VM}.autoShutdownEnabled', f'{VM}.autoShutdownEmailRecipient', "''"),
         'bastionSku': (f'{NET}.deployBastion', f'{NET}.bastionSku', "'Basic'"),
-        'vhdStorageAccountResourceGroup': (f'not(empty({ADV}.vhdStorageAccountName))', f'{ADV}.vhdStorageAccountResourceGroup', "'Arcbox'"),
-        'vhdContainerName': (f'not(empty({ADV}.vhdStorageAccountName))', f'{ADV}.vhdContainerName', "'arcboxvhds'"),
+        # The resource group is the fifth segment of the storage account resource ID
+        'vhdStorageAccountName': (OWN_VHD_STORAGE, f'{ADV}.vhdStorageAccount.name', "''"),
+        'vhdStorageAccountResourceGroup': (OWN_VHD_STORAGE, f"first(skip(split({ADV}.vhdStorageAccount.id, '/'), 4))", "''"),
+        'vhdContainerName': (OWN_VHD_STORAGE, f'{ADV}.vhdContainerName', "'arcboxvhds'"),
     }
     for name, (condition, value, default) in hidden_defaults.items():
         outputs[name] = f'[if({condition}, {value}, {default})]'
 
     # One template parameter fed by whichever size selector is visible; the check box is UI only
-    for name in ('clientVmSizeShared', 'clientVmSizePerVm', 'diskPerformanceCheck'):
+    for name in ('clientVmSizeShared', 'clientVmSizePerVm', 'diskPerformanceCheck', 'vhdSource', 'vhdStorageAccount'):
         del outputs[name]
     outputs['clientVmSize'] = f'[if({IS_PERVM}, {VM}.clientVmSizePerVm, {VM}.clientVmSizeShared)]'
 

@@ -23,6 +23,7 @@ The button opens the ArcBox deployment form in the Azure portal. Compared with a
 
 - **Client VM size picker** with pricing and availability for your subscription (v5 or newer D/E-series x64 sizes with 8+ vCPUs and 32+ GB of memory).
 - **Nested VM disks**: one shared data disk, or one Premium SSD v2 data disk per nested VM. With one disk per nested VM, only larger VM sizes are offered, and the form blocks the deployment if the disks add up to more IOPS or throughput than the VM size supports.
+- **Nested VM image source** (Advanced tab): the public Jumpstart storage by default, which works in any subscription, or a storage account in the deployment subscription that holds your own copy of the VHDX files. The form lists the subscription's storage accounts, and the deployment grants the client VM read access to the one you pick, so it does not need anonymous access.
 - **Networking options**: NAT Gateway for outbound internet access (for environments where policy blocks default outbound access), a private endpoint for the Key Vault (for environments where policy disables public network access on Key Vaults) and Azure Bastion.
 
 ### Connecting to the client VM

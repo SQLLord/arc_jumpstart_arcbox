@@ -450,14 +450,14 @@
     },
     "vhdStorageAccountName": {
       "type": "string",
-      "defaultValue": "arcboxfilesdonotdelete",
+      "defaultValue": "",
       "metadata": {
-        "description": "Optional. Storage account holding the nested VM VHD images (private; accessed with the client VM managed identity). Leave empty to use the public Jumpstart storage account."
+        "description": "Optional. Storage account in this subscription holding the nested VM VHD images (accessed with the client VM managed identity). Leave empty to use the public Jumpstart storage account."
       }
     },
     "vhdStorageAccountResourceGroup": {
       "type": "string",
-      "defaultValue": "Arcbox",
+      "defaultValue": "[resourceGroup().name]",
       "metadata": {
         "description": "Resource group of the VHD storage account (same subscription as the deployment)"
       }
@@ -1838,7 +1838,7 @@
             "value": "[parameters('vhdStorageAccountName')]"
           },
           "vhdStorageAccountResourceGroup": {
-            "value": "[parameters('vhdStorageAccountResourceGroup')]"
+            "value": "[if(empty(parameters('vhdStorageAccountResourceGroup')), resourceGroup().name, parameters('vhdStorageAccountResourceGroup'))]"
           },
           "vhdContainerName": {
             "value": "[parameters('vhdContainerName')]"

@@ -774,30 +774,45 @@
             }
           },
           {
-            "name": "vhdStorageAccountName",
-            "type": "Microsoft.Common.TextBox",
-            "label": "VHD storage account (empty = public Jumpstart storage)",
-            "defaultValue": "arcboxfilesdonotdelete",
+            "name": "vhdSource",
+            "type": "Microsoft.Common.OptionsGroup",
+            "label": "Nested VM image source",
+            "defaultValue": "Public Jumpstart storage",
+            "toolTip": "Public Jumpstart storage works in any subscription. A storage account in this subscription is read with the client VM managed identity (the deployment grants it Storage Blob Data Reader), so it does not need anonymous access.",
             "constraints": {
-              "required": false
+              "allowedValues": [
+                {
+                  "label": "Public Jumpstart storage",
+                  "value": "Public"
+                },
+                {
+                  "label": "Storage account in this subscription",
+                  "value": "StorageAccount"
+                }
+              ],
+              "required": true
             }
           },
           {
-            "name": "vhdStorageAccountResourceGroup",
-            "type": "Microsoft.Common.TextBox",
-            "label": "VHD storage account resource group",
-            "defaultValue": "Arcbox",
-            "visible": "[not(empty(steps('advanced').vhdStorageAccountName))]",
-            "constraints": {
-              "required": true
-            }
+            "name": "vhdStorageAccount",
+            "type": "Microsoft.Solutions.ResourceSelector",
+            "label": "VHD storage account",
+            "resourceType": "Microsoft.Storage/storageAccounts",
+            "options": {
+              "filter": {
+                "subscription": "onBasics",
+                "location": "all"
+              }
+            },
+            "toolTip": "Storage account holding copies of the ArcBox VHDX files (for example ArcBox-SQL.vhdx).",
+            "visible": "[equals(steps('advanced').vhdSource, 'StorageAccount')]"
           },
           {
             "name": "vhdContainerName",
             "type": "Microsoft.Common.TextBox",
             "label": "VHD container",
             "defaultValue": "arcboxvhds",
-            "visible": "[not(empty(steps('advanced').vhdStorageAccountName))]",
+            "visible": "[equals(steps('advanced').vhdSource, 'StorageAccount')]",
             "constraints": {
               "required": true
             }
@@ -848,11 +863,11 @@
       "githubAccount": "[steps('advanced').githubAccount]",
       "githubBranch": "[steps('advanced').githubBranch]",
       "githubUser": "[steps('advanced').githubUser]",
-      "vhdStorageAccountName": "[steps('advanced').vhdStorageAccountName]",
-      "vhdStorageAccountResourceGroup": "[if(not(empty(steps('advanced').vhdStorageAccountName)), steps('advanced').vhdStorageAccountResourceGroup, 'Arcbox')]",
-      "vhdContainerName": "[if(not(empty(steps('advanced').vhdStorageAccountName)), steps('advanced').vhdContainerName, 'arcboxvhds')]",
+      "vhdContainerName": "[if(equals(steps('advanced').vhdSource, 'StorageAccount'), steps('advanced').vhdContainerName, 'arcboxvhds')]",
       "keyVaultName": "[steps('advanced').keyVaultName]",
       "debugEnabled": "[steps('advanced').debugEnabled]",
+      "vhdStorageAccountName": "[if(equals(steps('advanced').vhdSource, 'StorageAccount'), steps('advanced').vhdStorageAccount.name, '')]",
+      "vhdStorageAccountResourceGroup": "[if(equals(steps('advanced').vhdSource, 'StorageAccount'), first(skip(split(steps('advanced').vhdStorageAccount.id, '/'), 4)), '')]",
       "clientVmSize": "[if(equals(steps('vm').nestedVmDiskLayout, 'PerVM'), steps('vm').clientVmSizePerVm, steps('vm').clientVmSizeShared)]"
     }
   }

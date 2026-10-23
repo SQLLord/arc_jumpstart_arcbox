@@ -327,11 +327,11 @@ param deployNatGateway bool = false
 @description('Deploy a private endpoint for the Key Vault in the ArcBox subnet, with a private DNS zone linked to the VNet. Use where policy disables public network access on Key Vaults; the vault is then only reachable from inside the VNet.')
 param keyVaultPrivateEndpoint bool = false
 
-@description('Optional. Storage account holding the nested VM VHD images (private; accessed with the client VM managed identity). Leave empty to use the public Jumpstart storage account.')
-param vhdStorageAccountName string = 'arcboxfilesdonotdelete'
+@description('Optional. Storage account in this subscription holding the nested VM VHD images (accessed with the client VM managed identity). Leave empty to use the public Jumpstart storage account.')
+param vhdStorageAccountName string = ''
 
 @description('Resource group of the VHD storage account (same subscription as the deployment)')
-param vhdStorageAccountResourceGroup string = 'Arcbox'
+param vhdStorageAccountResourceGroup string = resourceGroup().name
 
 @description('Blob container holding the nested VM VHD images')
 param vhdContainerName string = 'arcboxvhds'
@@ -448,7 +448,7 @@ module clientVmDeployment 'clientVm/clientVm.bicep' = {
     nestedVmDiskSizeGB: nestedVmDiskSizeGB
     nestedVmDiskIOPS: nestedVmDiskIOPS
     nestedVmDiskMBps: nestedVmDiskMBps
-    vhdStorageAccountResourceGroup: vhdStorageAccountResourceGroup
+    vhdStorageAccountResourceGroup: empty(vhdStorageAccountResourceGroup) ? resourceGroup().name : vhdStorageAccountResourceGroup
     vhdContainerName: vhdContainerName
     windowsAdminUsername: windowsAdminUsername
     windowsAdminPassword: windowsAdminPassword
